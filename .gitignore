@@ -1,0 +1,6 @@
+# Composer:
+/bin/
+/vendor/
+
+# IDEs:
+/.idea/
