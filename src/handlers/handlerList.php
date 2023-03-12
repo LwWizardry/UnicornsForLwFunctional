@@ -20,6 +20,7 @@ $app->get('/mods', function (Request $request, Response $response, $args) {
         "name" => "HarmonyForLogicWorld"
     );
 
-    $response->getBody()->write('<pre>' . json_encode($modList, JSON_PRETTY_PRINT) . '</pre>');
+    //$response->getBody()->write('<pre>' . json_encode($modList, JSON_PRETTY_PRINT) . '</pre>');
+    $response->getBody()->write(json_encode($modList));
     return $response;
 });
