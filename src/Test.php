@@ -1,5 +1,5 @@
 <?php
-	
+
 namespace MP;
 
 class Test {

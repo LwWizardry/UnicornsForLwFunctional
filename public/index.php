@@ -22,27 +22,27 @@ $app = AppFactory::create();
 #$app->addRoutingMiddleware();
 
 $app->add(function (Request $request, RequestHandler $handler) use ($app) {
-    if(isset($_SERVER['HTTP_ORIGIN'])) {
-        $origin = $_SERVER['HTTP_ORIGIN'];
-        if(in_array($origin, ['http://localhost:5173', 'https://lwmods.ecconia.com'])) {
-            header('Access-Control-Allow-Origin: ' . $origin);
-            header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-            header('Access-Control-Allow-Headers: DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range');
-
-            if($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-                header('Access-Control-Max-Age: 1728000');
-                header('Content-Type: text/plain charset=UTF-8');
-                header('Content-Length: 0');
-
-                //Discard original request and answer:
-                $response = $app->getResponseFactory()->createResponse();
-                return $response->withStatus(204);
-            }
-        }
-    }
-
-    //Continue normally:
-    return $handler->handle($request);
+	if (isset($_SERVER['HTTP_ORIGIN'])) {
+		$origin = $_SERVER['HTTP_ORIGIN'];
+		if (in_array($origin, ['http://localhost:5173', 'https://lwmods.ecconia.com'])) {
+			header('Access-Control-Allow-Origin: ' . $origin);
+			header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+			header('Access-Control-Allow-Headers: DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range');
+			
+			if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+				header('Access-Control-Max-Age: 1728000');
+				header('Content-Type: text/plain charset=UTF-8');
+				header('Content-Length: 0');
+				
+				//Discard original request and answer:
+				$response = $app->getResponseFactory()->createResponse();
+				return $response->withStatus(204);
+			}
+		}
+	}
+	
+	//Continue normally:
+	return $handler->handle($request);
 });
 
 $errorMiddleware = $app->addErrorMiddleware(true, false, false);
@@ -50,21 +50,23 @@ $errorMiddleware = $app->addErrorMiddleware(true, false, false);
 $errorMiddleware->setErrorHandler(
 	HttpNotFoundException::class,
 	function (Request $request, Throwable $exception, bool $displayErrorDetails
-) use ($app) {
-	$response = $app->getResponseFactory()->createResponse();
-	$response->getBody()->write('404 NOT FOUND');
-	return $response->withStatus(404, 'page not found');
-});
+	) use ($app) {
+		$response = $app->getResponseFactory()->createResponse();
+		$response->getBody()->write('404 NOT FOUND');
+		return $response->withStatus(404, 'page not found');
+	}
+);
 
 // Set the Not Allowed Handler
 $errorMiddleware->setErrorHandler(
 	HttpMethodNotAllowedException::class,
 	function (Request $request, Throwable $exception, bool $displayErrorDetails
-) use ($app) {
-	$response = $app->getResponseFactory()->createResponse();
-	$response->getBody()->write('405 NOT ALLOWED');
-	return $response->withStatus(405);
-});
+	) use ($app) {
+		$response = $app->getResponseFactory()->createResponse();
+		$response->getBody()->write('405 NOT ALLOWED');
+		return $response->withStatus(405);
+	}
+);
 /*
 $errorMiddleware->setDefaultErrorHandler(function (Request $request, Throwable $exception, bool $displayErrorDetails
 ) use ($app) {
