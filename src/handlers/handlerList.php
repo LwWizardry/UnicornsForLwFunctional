@@ -3,6 +3,8 @@
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
+require_once 'loginHandler.php';
+
 $app->get('/a', function (Request $request, Response $response, $args) {
 	$response->getBody()->write("No u 2!");
 	return $response;
