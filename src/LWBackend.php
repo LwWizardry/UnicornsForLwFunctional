@@ -2,6 +2,9 @@
 
 namespace MP;
 
+use MP\LWObjects\LWAuthor;
+use MP\LWObjects\LWComment;
+
 class LWBackend {
 	public static function queryCommentsForPost(string $postID): MixedResult {
 		$query = 'query GetComments($objid:String!){comments(objid:$objid){id body author{id username picture flair}}}';
@@ -97,8 +100,8 @@ class LWBackend {
 			if(!$is_string_field_set($objAuthor, 'flair')) {
 				return new MixedResult(false, $errorMessage);
 			}
-			$author = new \MP\LWObjects\LWAuthor($objAuthor['id'], $objAuthor['username'], $objAuthor['picture'], $objAuthor['flair']);
-			$comment = new \MP\LWObjects\LWComment($objComment['id'], $objComment['body'], $author);
+			$author = new LWAuthor($objAuthor['id'], $objAuthor['username'], $objAuthor['picture'], $objAuthor['flair']);
+			$comment = new LWComment($objComment['id'], $objComment['body'], $author);
 			$comments[] = $comment;
 		}
 		

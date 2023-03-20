@@ -1,10 +1,11 @@
 <?php
 
 use MP\LWBackend;
+use MP\SlimSetup;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-$app->get('/auth/login/new', function (Request $request, Response $response, array $args) {
+SlimSetup::getSlim()->get('/auth/login/new', function (Request $request, Response $response, array $args) {
 	$serverChallenge = [
 		"challenge" => "Super mega nice challenge with ID 52351243 that will do for the 754743's test!",
 		"session" => "912475621398",
@@ -13,7 +14,7 @@ $app->get('/auth/login/new', function (Request $request, Response $response, arr
 	return $response;
 });
 
-$app->get('/auth/login/created', function (Request $request, Response $response, array $args) {
+SlimSetup::getSlim()->get('/auth/login/created', function (Request $request, Response $response, array $args) {
 	if (!isset($_GET['session'])) {
 		//The session parameter is incomplete.
 		return $response->withStatus(401, 'Missing session ID');
