@@ -49,12 +49,19 @@ class ResponseFactory {
 				],
 			];
 		} else {
+			$message = $exception->getMessage();
+			//Primitive way to prevent any sensitive DB data to leak.
+			// PDO at least includes 'localhost' and the connecting username of the DB.
+			$message = str_replace($_ENV['DB_USER'], '<redacted>', $message);
+			$message = str_replace($_ENV['DB_PASSWORD'], '<redacted>', $message);
+			$message = str_replace($_ENV['DB_NAME'], '<redacted>', $message);
+			$message = str_replace('localhost', '<redacted>', $message);
 			$content = [
 				'error' => [
 					'type' => 'internal',
 					'class' => get_class($exception),
 					'code' => $exception->getCode(),
-					'message' => $exception->getMessage(),
+					'message' => $message,
 					'trace' => $exception->getTraceAsString(),
 				],
 			];
