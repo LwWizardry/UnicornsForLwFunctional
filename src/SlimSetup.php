@@ -70,10 +70,10 @@ class SlimSetup {
 			function (Request $request, Throwable $exception, bool $displayErrorDetails) {
 				$response = self::createResponse();
 				$response->getBody()->write('404 NOT FOUND');
-				return $response->withStatus(404, 'page not found');
+				return $response->withStatus(404);
 			}
 		);
-
+		
 		// Set the Not Allowed Handler
 		$errorMiddleware->setErrorHandler(
 			HttpMethodNotAllowedException::class,
@@ -85,19 +85,7 @@ class SlimSetup {
 		);
 		
 		$errorMiddleware->setDefaultErrorHandler(function (Request $request, Throwable $exception, bool $displayErrorDetails) {
-			$content = [
-				'error' => [
-					'type' => 'internal',
-					'class' => get_class($exception),
-					'code' => $exception->getCode(),
-					'message' => $exception->getMessage(),
-					'trace' => $exception->getTraceAsString(),
-				],
-			];
-			
-			$response = self::createResponse();
-			$response->getBody()->write(json_encode($content));
-			return $response->withStatus(500, 'Internal server error');
+			return ResponseFactory::fromException($exception);
 		});
 	}
 }

@@ -6,118 +6,56 @@ use MP\LWObjects\LWAuthor;
 use MP\LWObjects\LWComment;
 
 class LWBackend {
-	public static function queryCommentsForPost(string $postID): MixedResult {
-		$query = 'query GetComments($objid:String!){comments(objid:$objid){id body author{id username picture flair}}}';
+	/**
+	 * @return LWComment[]
+	 */
+	public static function queryCommentsForPost(string $postID): array {
+		$query = 'query GetComments($objid:String!){comments(objid:$objid){id createdat editedat body author{id username picture flair}}}';
 		$queryResponse = self::queryFromLogicWorldBackend($query, [
 			'objid' => $postID,
 		]);
-		if ($queryResponse->hasFailed()) {
-			return new MixedResult(false, 'FAILED to execute request: ' . $queryResponse->getContent());
-		}
 		
-		$objRoot = json_decode($queryResponse->getContent(), true);
-		if ($objRoot === null) {
-			//Not able to decode JSON, invalid?
-			return new MixedResult(false, 'FAILED to parse JSON: ' . $queryResponse->getContent());
+		try {
+			$rootObject = JsonValidator::parseJson($queryResponse);
+			if(JsonValidator::hasKey($rootObject, 'error')) {
+				throw new InternalDescriptiveException('API returned error: ' . $queryResponse);
+			}
+			
+			$dataObject = JsonValidator::getObject($rootObject, 'data');
+			$commentsObject = JsonValidator::getObject($dataObject, 'comments');
+			
+			$comments = [];
+			foreach ($commentsObject as $commentObject) {
+				$comment_id = JsonValidator::getString($commentObject, 'id');
+				$comment_body = JsonValidator::getString($commentObject, 'body');
+				$comment_author = JsonValidator::getObject($commentObject, 'author');
+				$comment_createdAt = JsonValidator::getDateTime($commentObject, 'createdat');
+				$comment_editedAt = JsonValidator::getDateTimeOptional($commentObject, 'editedat');
+				$author_id = JsonValidator::getUInt($comment_author, 'id');
+				$author_username = JsonValidator::getString($comment_author, 'username');
+				$author_picture = JsonValidator::getString($comment_author, 'picture');
+				$author_flair = JsonValidator::getString($comment_author, 'flair');
+				
+				$author = new LWAuthor($author_id, $author_username, $author_picture, $author_flair);
+				$comment = new LWComment($comment_id, $comment_body, $author, $comment_createdAt, $comment_editedAt);
+				$comments[] = $comment;
+			}
+			return $comments;
+		} catch (InternalDescriptiveException $e) {
+			throw new InternalDescriptiveException('While getting comments of post ' . $postID . ' an exception happened:' . PHP_EOL . $e->getMessage());
 		}
-		
-		//Now we got something to work with:
-		if (isset($objRoot['error'])) {
-			//Failed to perform GraphQL query:
-			return new MixedResult(false, 'FAILED to query: ' . $queryResponse->getContent());
-		}
-		
-		//Closures:
-		$errorMessage = '';
-		$is_string_field_set = function ($object, $key) use($queryResponse, &$errorMessage) {
-			if(!isset($object[$key])) {
-				$errorMessage = 'Could not find string field ' . $key . ' in "' . $queryResponse->getContent() . '" specific: "' . json_encode($object) . '"';
-				return false;
-			}
-			$value = $object[$key];
-			if(!is_string($value)) {
-				$errorMessage = 'String field ' . $key . ' is not of type string in "' . $queryResponse->getContent() . '" specific: "' . json_encode($object) . '"';
-				return false;
-			}
-			return true;
-		};
-		$is_array_field_set = function ($object, $key) use($queryResponse, &$errorMessage) {
-			if(!isset($object[$key])) {
-				$errorMessage = 'Could not find array field ' . $key . ' in "' . $queryResponse->getContent() . '" specific: "' . json_encode($object) . '"';
-				return false;
-			}
-			$value = $object[$key];
-			if(!is_array($value)) {
-				$errorMessage = 'Array field ' . $key . ' is not of type array in "' . $queryResponse->getContent() . '" specific: "' . json_encode($object) . '"';
-				return false;
-			}
-			return true;
-		};
-		$is_unsigned_number_field_set = function ($object, $key) use($queryResponse, &$errorMessage) {
-			if(!isset($object[$key])) {
-				$errorMessage = 'Could not find number field ' . $key . ' in "' . $queryResponse->getContent() . '" specific: "' . json_encode($object) . '"';
-				return false;
-			}
-			$value = $object[$key];
-			if(!is_int($value)) {
-				$errorMessage = 'Int field ' . $key . ' is not of type int in "' . $queryResponse->getContent() . '" specific: "' . json_encode($object) . '"';
-				return false;
-			}
-			return true;
-		};
-		
-		$comments = [];
-		//Validation of succeeded content:
-		if(!$is_array_field_set($objRoot, 'data')) {
-			return new MixedResult(false, $errorMessage);
-		}
-		$objData = $objRoot['data'];
-		if(!$is_array_field_set($objData, 'comments')) {
-			return new MixedResult(false, $errorMessage);
-		}
-		$objComments = $objData['comments'];
-		//Validate each comment:
-		foreach ($objComments as $objComment) {
-			if(!$is_string_field_set($objComment, 'id')) {
-				return new MixedResult(false, $errorMessage);
-			}
-			if(!$is_string_field_set($objComment, 'body')) {
-				return new MixedResult(false, $errorMessage);
-			}
-			if(!$is_array_field_set($objComment, 'author')) {
-				return new MixedResult(false, $errorMessage);
-			}
-			$objAuthor = $objComment['author'];
-			if(!$is_unsigned_number_field_set($objAuthor, 'id')) {
-				return new MixedResult(false, $errorMessage);
-			}
-			if(!$is_string_field_set($objAuthor, 'username')) {
-				return new MixedResult(false, $errorMessage);
-			}
-			if(!$is_string_field_set($objAuthor, 'picture')) {
-				return new MixedResult(false, $errorMessage);
-			}
-			if(!$is_string_field_set($objAuthor, 'flair')) {
-				return new MixedResult(false, $errorMessage);
-			}
-			$author = new LWAuthor($objAuthor['id'], $objAuthor['username'], $objAuthor['picture'], $objAuthor['flair']);
-			$comment = new LWComment($objComment['id'], $objComment['body'], $author);
-			$comments[] = $comment;
-		}
-		
-		return new MixedResult(true, $comments);
 	}
 	
-	public static function queryFromLogicWorldBackend(string $query, array $variables): MixedResult {
+	public static function queryFromLogicWorldBackend(string $query, array $variables): string {
 		return self::performGraphQueryLanguage('https://logicworld.net/graphql', $query, $variables);
 	}
 	
-	public static function performGraphQueryLanguage(string $url, string $query, array $variables): MixedResult {
+	public static function performGraphQueryLanguage(string $url, string $query, array $variables): string {
 		$json = '{"query":"' . $query . '","variables":' . json_encode($variables) . '}';
 		return self::doCurlPostJsonRequest($url, $json);
 	}
 	
-	public static function doCurlPostJsonRequest(string $url, string $content): MixedResult {
+	public static function doCurlPostJsonRequest(string $url, string $content): string {
 		$ch = curl_init($url);
 		curl_setopt_array($ch, [
 			CURLOPT_POST => true,
@@ -129,11 +67,14 @@ class LWBackend {
 		]);
 		$curlResponse = curl_exec($ch);
 		if($curlResponse === FALSE) {
-			$content = curl_error($ch);
+			$curlError = curl_error($ch);
 			curl_close($ch);
-			return new MixedResult(false, $content);
+			throw new InternalDescriptiveException('Failed to execute post request to "' . $url . '" with data "' . $content . '" because: ' . $curlError);
 		}
 		curl_close($ch);
-		return new MixedResult(true, $curlResponse);
+		if(gettype($curlResponse) !== "string") {
+			throw new InternalDescriptiveException('Failed to execute post request to "' . $url . '" with data "' . $content . '" because return type was not string but: ' . gettype($curlResponse));
+		}
+		return $curlResponse;
 	}
 }
