@@ -134,7 +134,8 @@ class LoginChallenge {
 			SET
 				lw_id = :lw_id,
 				lw_name = :lw_name,
-				lw_picture = :lw_picture
+				lw_picture = :lw_picture,
+				lw_flair = :lw_flair
 			WHERE session = :session
 		')->execute([
 			'session' => $this->session,
