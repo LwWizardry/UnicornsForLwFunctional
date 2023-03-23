@@ -43,7 +43,7 @@ class SlimSetup {
 				if (in_array($origin, ['http://localhost:5173', 'https://lwmods.ecconia.com'])) {
 					header('Access-Control-Allow-Origin: ' . $origin);
 					header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-					header('Access-Control-Allow-Headers: DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range');
+					header('Access-Control-Allow-Headers: Authorization,DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range');
 					
 					if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 						header('Access-Control-Max-Age: 1728000');
@@ -87,5 +87,19 @@ class SlimSetup {
 		$errorMiddleware->setDefaultErrorHandler(function (Request $request, Throwable $exception, bool $displayErrorDetails) {
 			return ResponseFactory::fromException($exception);
 		});
+	}
+	
+	public static function expectAuthorizationHeader(Request $request): string {
+		if (!$request->hasHeader('Authorization')) {
+			throw new BadRequestException('Missing authorization header');
+		}
+		$sessionID = $request->getHeader('Authorization');
+		if(count($sessionID) !== 1) {
+			throw new BadRequestException('Expected exactly one authorization header/values, got ' . count($sessionID));
+		}
+		if(preg_match('/Bearer ([a-zA-Z0-9+\/]+=*)/m', $sessionID[0], $matches)) {
+			return $matches[1];
+		}
+		throw new BadRequestException('Malformed authorization header');
 	}
 }

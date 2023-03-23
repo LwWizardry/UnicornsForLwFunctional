@@ -29,12 +29,7 @@ SlimSetup::getSlim()->get('/auth/login/new', function (Request $request, Respons
 });
 
 SlimSetup::getSlim()->get('/auth/login/created', function (Request $request, Response $response, array $args) {
-	if (!isset($_GET['session'])) {
-		//The session parameter is incomplete.
-		return ResponseFactory::writeBadRequestError($response, 'Missing session ID');
-	}
-	$sessionID = $_GET['session'];
-	
+	$sessionID = SlimSetup::expectAuthorizationHeader($request);
 	$loginChallenge = LoginChallenge::getChallengeForSession($sessionID);
 	if ($loginChallenge === null) {
 		//Could not find the session ID in DB (or its entry is corrupted) => Let client acquire a new one.
@@ -112,12 +107,7 @@ SlimSetup::getSlim()->get('/auth/login/created', function (Request $request, Res
 });
 
 SlimSetup::getSlim()->get('/auth/login/deleted', function (Request $request, Response $response, array $args) {
-	if (!isset($_GET['session'])) {
-		//The session parameter is incomplete.
-		return ResponseFactory::writeBadRequestError($response, 'Missing session ID');
-	}
-	$sessionID = $_GET['session'];
-	
+	$sessionID = SlimSetup::expectAuthorizationHeader($request);
 	$loginChallenge = LoginChallenge::getChallengeForSession($sessionID);
 	if ($loginChallenge === null) {
 		//Could not find the session ID in DB (or its entry is corrupted) => Let client acquire a new one.

@@ -41,7 +41,9 @@ class ResponseFactory {
 	}
 	
 	public static function fromException(Throwable $exception): Response {
-		if(is_a($exception, InternalDescriptiveException::class)) {
+		if(is_a($exception, BadRequestException::class)) {
+			return self::writeBadRequestError(SlimSetup::createResponse(), $exception->getMessage());
+		} else if(is_a($exception, InternalDescriptiveException::class)) {
 			$content = [
 				'error' => [
 					'type' => 'internal-descriptive',
