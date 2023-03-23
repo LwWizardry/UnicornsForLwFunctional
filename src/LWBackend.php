@@ -35,6 +35,13 @@ class LWBackend {
 				$author_username = JsonValidator::getString($comment_author, 'username');
 				$author_picture = JsonValidator::getString($comment_author, 'picture');
 				$author_flair = JsonValidator::getString($comment_author, 'flair');
+				//Convert empty strings to null, as that is easier to process:
+				if(empty($author_picture)) {
+					$author_picture = null;
+				}
+				if(empty($author_flair)) {
+					$author_flair = null;
+				}
 				
 				$author = new LWAuthor($author_id, $author_username, $author_picture, $author_flair);
 				$comment = new LWComment($comment_id, $comment_body, $author, $comment_createdAt, $comment_editedAt);

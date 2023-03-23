@@ -24,17 +24,11 @@ class LoginChallenge {
 		$challenge_entry = $statement->fetch();
 		
 		if ($challenge_entry === false) {
+			//Did not find the session ID.
 			return null;
 		}
 		if ($challenge_entry['challenge'] == null) {
-			return null; //Should never be the case, if happens - the entry is invalid.
-		}
-		$hasAuthor = $challenge_entry['lw_name'] != null;
-		if(
-			$hasAuthor !== ($challenge_entry['lw_id'] != null) ||
-			$hasAuthor !== ($challenge_entry['lw_picture'] != null)
-		) {
-			return null; //Invalid user entry, either all or none shall be null.
+			throw new InternalDescriptiveException('The login session being used had no challenge set. This should be impossible.');
 		}
 		
 		return new LoginChallenge($challenge_entry['session'], $challenge_entry['challenge'], $challenge_entry);
@@ -101,11 +95,26 @@ class LoginChallenge {
 	private function __construct(string $session, string $challenge, null|array $raw_data) {
 		$this->session = $session;
 		$this->challenge = $challenge;
-		if($raw_data !== null) {
+		if ($raw_data !== null) {
 			$this->id = $raw_data['id'];
 			$this->createdAt = $raw_data['creation_time'];
-			if($raw_data['lw_name'] != null) {
-				$this->author = new LWAuthor($raw_data['lw_id'], $raw_data['lw_name'], $raw_data['lw_picture'], '');
+			
+			$hasAuthor = $raw_data['lw_name'] != null;
+			if ($hasAuthor !== ($raw_data['lw_id'] != null)) {
+				//ID was set without the name, or name was set without ID:
+				throw new InternalDescriptiveException('LoginChallenge has corrupted lw-user entry (either Name/ID is missing): [Name: "' . $raw_data['lw_name'] . '", ID: "' . $raw_data['lw_id'] . '", Picture: "' . $raw_data['lw_picture'] . '", Flair: "' . $raw_data['lw_flair'] . '"');
+			}
+			if ($hasAuthor) {
+				//Parse:
+				$this->author = new LWAuthor(
+					$raw_data['lw_id'],
+					$raw_data['lw_name'],
+					$raw_data['lw_picture'],
+					$raw_data['lw_flair']
+				);
+			} else if (($raw_data['lw_picture'] != null) || ($raw_data['lw_flair'] != null)) {
+				//No name/ID was set, but picture or flair was set... How?
+				throw new InternalDescriptiveException('LoginChallenge has corrupted lw-user entry. Name/ID are not set, yet there is a picture/flair entry: "' . $raw_data['lw_picture'] . '"/"' . $raw_data['lw_flair'] . '"');
 			}
 		}
 	}
@@ -132,6 +141,7 @@ class LoginChallenge {
 			'lw_id' => $this->author->getId(),
 			'lw_name' => $this->author->getUsername(),
 			'lw_picture' => $this->author->getPicture(),
+			'lw_flair' => $this->author->getFlair(),
 		]);
 	}
 	
