@@ -69,7 +69,7 @@ class PDOWrapper {
 			if($result !== null) {
 				return $result;
 			}
-		};
+		}
 		
 		//Tried for longer than half a second, stop trying now.
 		return null;

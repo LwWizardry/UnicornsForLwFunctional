@@ -1,9 +1,9 @@
 <?php
 
-namespace MP\DBEntries;
+namespace MP\DbEntries;
 
 use MP\InternalDescriptiveException;
-use MP\LWObjects\LWAuthor;
+use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
 
 class LoginChallenge {
@@ -51,8 +51,7 @@ class LoginChallenge {
 			$random_two = random_int(1, 999999999);
 			$challenge = $templates[$template_index];
 			$challenge = str_replace('{0}', $random_one, $challenge);
-			$challenge = str_replace('{1}', $random_two, $challenge);
-			return $challenge;
+			return str_replace('{1}', $random_two, $challenge);
 		};
 		
 		$statement = PDOWrapper::getPDO()->prepare('

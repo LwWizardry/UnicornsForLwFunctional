@@ -1,6 +1,6 @@
 <?php
 
-namespace MP\LWObjects;
+namespace MP\LwApi;
 
 class LWAuthor {
 	private int $id;

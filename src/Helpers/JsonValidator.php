@@ -1,10 +1,11 @@
 <?php
 
-namespace MP;
+namespace MP\Helpers;
 
 use DateTime;
 use DateTimeZone;
 use JsonException;
+use MP\InternalDescriptiveException;
 
 class JsonValidator {
 	public static function parseJson(string $input): array {

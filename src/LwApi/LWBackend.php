@@ -1,9 +1,9 @@
 <?php
 
-namespace MP;
+namespace MP\LwApi;
 
-use MP\LWObjects\LWAuthor;
-use MP\LWObjects\LWComment;
+use MP\Helpers\JsonValidator;
+use MP\InternalDescriptiveException;
 
 class LWBackend {
 	/**
