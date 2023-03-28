@@ -97,8 +97,8 @@ class LoginManager {
 			return base64_encode(random_bytes(24));
 		};
 		$statement = PDOWrapper::getPDO()->prepare('
-			INSERT INTO sessions (token, issued_at, user)
-			VALUES (:token, UTC_TIMESTAMP(), :user)
+			INSERT INTO sessions (token, issued_at, last_usage_at, user)
+			VALUES (:token, UTC_TIMESTAMP(), UTC_TIMESTAMP(), :user)
 		');
 		$token = PDOWrapper::uniqueInjector($statement, [
 			'user' => $userToAuth->getId(),
@@ -120,7 +120,7 @@ class LoginManager {
 	
 	public static function isLoggedIn(Response $response, string $authToken): Response {
 		$statement = PDOWrapper::getPDO()->prepare('
-			SELECT u.identifier, lu.name, lu.picture
+			SELECT s.id, u.identifier, lu.name, lu.picture
 			FROM sessions AS s
 			INNER JOIN users u ON s.user = u.id
 			INNER JOIN lw_users lu on u.id = lu.user
@@ -133,8 +133,17 @@ class LoginManager {
 		if(count($result) !== 1) {
 			return ResponseFactory::writeBadRequestError($response, 'Invalid auth token', 401);
 		}
-		
 		$result = $result[0];
+		
+		//Update timestamp of token:
+		PDOWrapper::getPDO()->prepare('
+			UPDATE sessions
+			SET last_usage_at = UTC_TIMESTAMP()
+			WHERE id = :id
+		')->execute([
+			'id' => $result['id'],
+		]);
+		
 		return ResponseFactory::writeJsonData($response, [
 			'identifier' => $result['identifier'],
 			'username' => $result['name'],
