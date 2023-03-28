@@ -27,26 +27,34 @@ class PDOWrapper {
 		return self::$pdo;
 	}
 	
-	//Unused, as replaced with 'UTC_TIME'
+	//Unused, as replaced with 'UTC_TIMESTAMP'
 	public static function getDateNow(): string {
 		$date = new DateTime("now", new DateTimeZone("UTC"));
 		return $date->format('Y-m-d H:i:s'); //Required: YYYY-MM-DD HH:MI:SS
 	}
 	
+	public static function isUniqueConstrainViolation(PDOException $e): bool {
+		return $e->getCode() == 23000 && str_starts_with($e->getMessage(), 'SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry \'');
+	}
+	
 	//TBI: Some say this method of finding unique IDs is bad, due to unpredictable runtime. I say it is pure, as the result is truly random.
-	public static function uniqueInjector(PDOStatement $query, array $arguments, string $uniqueKey, callable $generationCallback) : string|null {
-		$attemptInjection = function() use($query, &$arguments, $uniqueKey, $generationCallback): null|string {
+	public static function uniqueInjector(PDOStatement $query, array $arguments, string $uniqueKey, callable $generationCallback, bool $returningQuery = false) : null|string|array {
+		$attemptInjection = function() use($query, &$arguments, $uniqueKey, $generationCallback, $returningQuery): null|string|array {
 			try {
 				$uniqueValue = $generationCallback();
 				$arguments[$uniqueKey] = $uniqueValue; //Initialize/Update the new unique key to insert
 				$query->execute($arguments);
-				return $uniqueValue; //Return the unique key that is actually being used - to reference it later.
+				if(!$returningQuery) {
+					return $uniqueValue;
+				}
+				$result = $query->fetch(); //Return the unique key that is actually being used - to reference it later.
+				if($result === false) {
+					throw new InternalDescriptiveException('Ehhh, fetch gave me "null", uff');
+				}
+				return $result;
 			} catch (PDOException $e) {
 				//Validate, that the expected error happens (unique key constrain issue):
-				if($e->getCode() != 23000) {
-					throw $e;
-				}
-				if(!str_starts_with($e->getMessage(), 'SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry \'')) {
+				if(!self::isUniqueConstrainViolation($e)) {
 					throw $e;
 				}
 				return null;

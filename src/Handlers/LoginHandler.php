@@ -3,6 +3,7 @@
 namespace MP\Handlers;
 
 use MP\DbEntries\LoginChallenge;
+use MP\LoginManager;
 use MP\LwApi\LWBackend;
 use MP\ResponseFactory;
 use MP\SlimSetup;
@@ -14,6 +15,7 @@ class LoginHandler {
 		SlimSetup::getSlim()->get('/auth/login/new', self::onNewToken(...));
 		SlimSetup::getSlim()->get('/auth/login/created', self::onCommentCreated(...));
 		SlimSetup::getSlim()->get('/auth/login/deleted', self::onCommentsDeleted(...));
+		SlimSetup::getSlim()->get('/auth/login/probe', self::onLoginProbe(...));
 	}
 	
 	private static function onNewToken(Request $request, Response $response): Response {
@@ -152,8 +154,14 @@ class LoginHandler {
 			]);
 		}
 		
-		//TODO: Generate JWT and inject the session and user into DB.
-		// -> Find LW users. If yes, find linked user. If not there, add it. Then add new JWT session.
-		return ResponseFactory::writeJsonData($response, []);
+		$response = LoginManager::finalizeLogin($response, $loginChallenge);
+		//We got the response for the user, clean up by deleting the challenge:
+		$loginChallenge->delete();
+		return $response;
+	}
+	
+	private static function onLoginProbe(Request $request, Response $response): Response {
+		$authToken = SlimSetup::expectAuthorizationHeader($request);
+		return LoginManager::isLoggedIn($response, $authToken);
 	}
 }

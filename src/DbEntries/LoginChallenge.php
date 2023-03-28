@@ -152,4 +152,18 @@ class LoginChallenge {
 	public function getAuthor(): null|LWAuthor {
 		return $this->author;
 	}
+	
+	public function getCreatedAt(): string {
+		return $this->createdAt;
+	}
+	
+	public function delete(): void {
+		$statement = PDOWrapper::getPDO()->prepare('
+			DELETE FROM login_challenges
+			WHERE id = :id
+		');
+		$statement->execute([
+			'id' => $this->id,
+		]);
+	}
 }
