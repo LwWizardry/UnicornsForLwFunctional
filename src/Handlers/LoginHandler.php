@@ -27,6 +27,12 @@ class LoginHandler {
 		if($parameter['privacy-policy'] != 'accept') {
 			return ResponseFactory::writeBadRequestError($response, 'Called API with the intention of not accepting privacy policy');
 		}
+		if(!isset($parameter['terms-of-service'])) {
+			return ResponseFactory::writeBadRequestError($response, 'Missing terms of service statement');
+		}
+		if($parameter['terms-of-service'] != 'accept') {
+			return ResponseFactory::writeBadRequestError($response, 'Called API with the intention of not accepting terms of service');
+		}
 		
 		//As initial step, remove all challenge entries that have expired:
 		LoginChallenge::deleteOutdated();
