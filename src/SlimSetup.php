@@ -40,7 +40,11 @@ class SlimSetup {
 		self::$slim->add(function (Request $request, RequestHandler $handler) {
 			if (isset($_SERVER['HTTP_ORIGIN'])) {
 				$origin = $_SERVER['HTTP_ORIGIN'];
-				if (in_array($origin, ['http://localhost:5173', 'https://lwmods.ecconia.com'])) {
+				if (in_array($origin, [
+					$_ENV['PRODUCTION_FRONTEND_URL'], //Production/Test-Server URL
+					'http://localhost:5173', //Direct Development URL
+					'http://lwmods.localhost', //Built Development URL
+				])) {
 					header('Access-Control-Allow-Origin: ' . $origin);
 					header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 					header('Access-Control-Allow-Headers: Authorization,DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range');

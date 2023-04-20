@@ -12,7 +12,7 @@ use MP\SlimSetup;
 //Load environment variables:
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
-$dotenv->required(['DB_NAME', 'DB_USER', 'DB_PASSWORD'])->notEmpty();
+$dotenv->required(['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'PRODUCTION_FRONTEND_URL'])->notEmpty();
 
 SlimSetup::setup();
 //Any error above this point will result in a CORS issue in the browser. Mostly these are failed setup errors though.
