@@ -2,7 +2,7 @@
 
 namespace MP\DbEntries;
 
-use MP\InternalDescriptiveException;
+use MP\ErrorHandling\InternalDescriptiveException;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
 

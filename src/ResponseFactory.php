@@ -2,6 +2,8 @@
 
 namespace MP;
 
+use MP\ErrorHandling\BadRequestException;
+use MP\ErrorHandling\InternalDescriptiveException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Throwable;
 

@@ -5,7 +5,7 @@ namespace MP\Helpers;
 use DateTime;
 use DateTimeZone;
 use JsonException;
-use MP\InternalDescriptiveException;
+use MP\ErrorHandling\InternalDescriptiveException;
 
 class JsonValidator {
 	public static function parseJson(string $input): array {

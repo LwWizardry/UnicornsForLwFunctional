@@ -4,6 +4,7 @@ namespace MP;
 
 use DateTime;
 use DateTimeZone;
+use MP\ErrorHandling\InternalDescriptiveException;
 use PDO;
 use PDOException;
 use PDOStatement;

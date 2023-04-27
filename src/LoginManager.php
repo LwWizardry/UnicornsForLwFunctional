@@ -5,6 +5,7 @@ namespace MP;
 use MP\DbEntries\LoginChallenge;
 use MP\DbEntries\LWUser;
 use MP\DbEntries\User;
+use MP\ErrorHandling\InternalDescriptiveException;
 use Psr\Http\Message\ResponseInterface as Response;
 
 class LoginManager {

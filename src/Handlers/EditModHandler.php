@@ -3,9 +3,9 @@
 namespace MP\Handlers;
 
 use MP\DbEntries\User;
+use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\Base32;
 use MP\Helpers\JsonValidator;
-use MP\InternalDescriptiveException;
 use MP\PDOWrapper;
 use MP\ResponseFactory;
 use MP\SlimSetup;

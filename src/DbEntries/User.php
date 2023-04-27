@@ -2,9 +2,9 @@
 
 namespace MP\DbEntries;
 
-use MP\BadRequestException;
+use MP\ErrorHandling\BadRequestException;
+use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\Base32;
-use MP\InternalDescriptiveException;
 use MP\PDOWrapper;
 
 class User {

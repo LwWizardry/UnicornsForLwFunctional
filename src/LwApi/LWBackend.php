@@ -2,8 +2,8 @@
 
 namespace MP\LwApi;
 
+use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\JsonValidator;
-use MP\InternalDescriptiveException;
 
 class LWBackend {
 	/**
