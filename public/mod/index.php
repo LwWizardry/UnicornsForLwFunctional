@@ -6,6 +6,7 @@ error_reporting(E_ALL);
 
 require __DIR__ . '/../../vendor/autoload.php';
 
+use MP\PDOWrapper;
 use MP\SlimSetup;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -20,7 +21,8 @@ SlimSetup::setup();
 
 SlimSetup::getSlim()->get('/mod/{name}[/]', function (Request $request, Response $response, array $args) {
 	$mod_name = $args['name'];
-	if(preg_match("/^[A-Za-z0-9_-]+$/", $mod_name) !== 1) {
+	//For now all mod names start with 'mod-', so do not even try to parse for a custom URL.
+	if(preg_match("/^mod-[A-Za-z0-9_-]+$/", $mod_name) !== 1) {
 		//Invalid mod name, refuse the request gracefully.
 		$title = 'Invalid mod name';
 		
@@ -30,14 +32,46 @@ SlimSetup::getSlim()->get('/mod/{name}[/]', function (Request $request, Response
 		$url_title = 'List of mods';
 		$destination_url = '/mods';
 	} else {
-		//TODO: Actually query DB. If mod does not exist, just forward anyway.
-		$title = 'Mod: ' . $mod_name;
-		
-		$search_title = $title;
-		$search_description = 'An epic mod for every purpose!';
-		
-		$url_title = $title;
 		$destination_url = '/mod-direct/' . $mod_name;
+		$identifier = substr($mod_name, 4);
+		
+		//In case that the DB lookup fails, use this data:
+		$title = 'Error loading mod';
+		$search_title = 'Unloaded mod';
+		$search_description = 'Mod could not be loaded by backend.';
+		$url_title = 'mod-' . $mod_name;
+		
+		try {
+			//Try to find 'identifier' in the DB mods table:
+			$statement = PDOWrapper::getPDO()->prepare('
+				SELECT title, caption
+				FROM mods
+				WHERE identifier = :identifier
+			');
+			$statement->execute([
+				'identifier' => $identifier,
+			]);
+			$result = $statement->fetchAll();
+			$foundMods = count($result);
+			if($foundMods == 0) {
+				$title = 'Not existing mod';
+				$search_title = 'Mod 404';
+				$search_description = 'Mod does not exist on Mod Portal.';
+				//Keep URL title as is.
+			} else if($foundMods == 1) {
+				$result = $result[0];
+				$real_name = $result['title'];
+				$real_caption = $result['caption'];
+				
+				//In case that the DB lookup delivers one mod, use this format:
+				$title = 'Mod: ' . $real_name;
+				$search_title = $title;
+				$search_description = $real_caption;
+				$url_title = $title;
+			} //Else do nothing, as something fatal happened. The identifier should be unique in the DB.
+		} catch (Throwable $e) {
+			//TODO: Handle exception, as in send it somewhere. For now lets not bother.
+		}
 	}
 	
 	//Old forwarding: <!--<script>window.location.href = "$destination_url";</script>-->
