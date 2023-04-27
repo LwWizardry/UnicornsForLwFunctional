@@ -49,7 +49,7 @@ class PDOWrapper {
 				}
 				$result = $query->fetch(); //Return the unique key that is actually being used - to reference it later.
 				if($result === false) {
-					throw new InternalDescriptiveException('Ehhh, fetch gave me "null", uff');
+					throw new InternalDescriptiveException('Fetch failed (false), while trying to unique inject an entry.');
 				}
 				return $result;
 			} catch (PDOException $e) {
@@ -61,11 +61,15 @@ class PDOWrapper {
 			}
 		};
 		
+		return self::repeatedAttempt($attemptInjection);
+	}
+	
+	private static function repeatedAttempt(callable $executable): mixed {
 		$startTime = microtime(true);
 		
 		//Try at least 5 times:
 		for($i = 0; $i < 5; $i++) {
-			$result = $attemptInjection();
+			$result = $executable();
 			if($result !== null) {
 				return $result;
 			}
@@ -73,7 +77,7 @@ class PDOWrapper {
 		
 		//If the duration exceeded half a second, stop - we do not want to flood the DB - or wait forever - something is wrong here!
 		while((microtime(true) - $startTime) < 0.5) {
-			$result = $attemptInjection();
+			$result = $executable();
 			if($result !== null) {
 				return $result;
 			}
@@ -81,5 +85,33 @@ class PDOWrapper {
 		
 		//Tried for longer than half a second, stop trying now.
 		return null;
+	}
+	
+	public static function uniqueIdentifierInjector(string $table, string $column, int $id, callable $idGenerator) : null|string {
+		$statement = PDOWrapper::getPDO()->prepare('
+			UPDATE ' . $table .'
+			SET ' . $column . ' = :value
+			WHERE id = :id
+		');
+		$arguments = [
+			'id' => $id,
+		];
+		
+		$attemptInjection = function() use($statement, $column, &$arguments, $idGenerator): null|string {
+			try {
+				$uniqueValue = $idGenerator();
+				$arguments['value'] = $uniqueValue; //Initialize/Update the new unique key to insert
+				$statement->execute($arguments);
+				return $uniqueValue;
+			} catch (PDOException $e) {
+				//Validate, that the expected error happens (unique key constrain issue):
+				if(!self::isUniqueConstrainViolation($e)) {
+					throw $e;
+				}
+				return null;
+			}
+		};
+		
+		return self::repeatedAttempt($attemptInjection);
 	}
 }

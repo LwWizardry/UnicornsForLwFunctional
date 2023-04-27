@@ -2,6 +2,7 @@
 
 namespace MP\DbEntries;
 
+use MP\BadRequestException;
 use MP\Helpers\Base32;
 use MP\InternalDescriptiveException;
 use MP\PDOWrapper;
@@ -29,6 +30,39 @@ class User {
 		$created_at = $identifierBeingUsed['created_at'];
 		
 		return new User($id, $identifier, $created_at, $acceptedPPAt);
+	}
+	
+	public static function fromSession($authToken): self {
+		$statement = PDOWrapper::getPDO()->prepare('
+			SELECT s.id AS session_id, u.id AS user_id, u.identifier, u.created_at, u.privacy_policy_accepted_at
+			FROM sessions AS s
+			INNER JOIN users u ON s.user = u.id
+			WHERE token = :token
+		');
+		$statement->execute([
+			'token' => $authToken,
+		]);
+		$result = $statement->fetchAll();
+		if(count($result) !== 1) {
+			throw new BadRequestException('Invalid auth token');
+		}
+		$result = $result[0];
+		
+		//Update timestamp of token:
+		PDOWrapper::getPDO()->prepare('
+			UPDATE sessions
+			SET last_usage_at = UTC_TIMESTAMP()
+			WHERE id = :id
+		')->execute([
+			'id' => $result['session_id'],
+		]);
+		
+		return new User(
+			$result['user_id'],
+			$result['identifier'],
+			$result['created_at'],
+			$result['privacy_policy_accepted_at'],
+		);
 	}
 	
 	private int $id;
