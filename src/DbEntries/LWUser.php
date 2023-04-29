@@ -22,7 +22,10 @@ class LWUser {
 				'flair' => $lwAuthor->getFlair(),
 			]);
 		} catch (PDOException $e) {
-		
+			if(PDOWrapper::isUniqueConstrainViolation($e)) {
+				return null; //Cannot create the user, as it is already created.
+			}
+			throw $e;
 		}
 		$id = $statement->fetchColumn();
 		
