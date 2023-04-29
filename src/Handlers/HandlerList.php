@@ -14,7 +14,6 @@ class HandlerList {
 		EditModHandler::initializeRouteHandlers();
 		
 		SlimSetup::getSlim()->get('/mods', function (Request $request, Response $response) {
-			
 			$statement = PDOWrapper::getPDO()->prepare('
 				SELECT title, caption, identifier
 				FROM mods;

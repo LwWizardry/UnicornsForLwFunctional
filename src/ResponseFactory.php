@@ -19,12 +19,6 @@ class ResponseFactory {
 		]);
 	}
 	
-	public static function writeJsonFailure(Response $response, $data): Response {
-		return self::writeJson($response, [
-			'failure' => $data,
-		]);
-	}
-	
 	public static function writeFailureMessage(Response $response, string $message): Response {
 		return self::writeJson($response, [
 			'failure' => [

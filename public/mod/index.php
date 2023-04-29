@@ -69,7 +69,7 @@ SlimSetup::getSlim()->get('/mod/{name}[/]', function (Request $request, Response
 				$search_description = $real_caption;
 				$url_title = $title;
 			} //Else do nothing, as something fatal happened. The identifier should be unique in the DB.
-		} catch (Throwable $e) {
+		} catch (Throwable) {
 			//TODO: Handle exception, as in send it somewhere. For now lets not bother.
 		}
 	}

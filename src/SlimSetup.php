@@ -72,7 +72,7 @@ class SlimSetup {
 		
 		$errorMiddleware->setErrorHandler(
 			HttpNotFoundException::class,
-			function (Request $request, Throwable $exception, bool $displayErrorDetails) {
+			function () {
 				$response = self::createResponse();
 				$response->getBody()->write('404 NOT FOUND');
 				return $response->withStatus(404);
@@ -82,14 +82,14 @@ class SlimSetup {
 		// Set the Not Allowed Handler
 		$errorMiddleware->setErrorHandler(
 			HttpMethodNotAllowedException::class,
-			function (Request $request, Throwable $exception, bool $displayErrorDetails) {
+			function () {
 				$response = self::createResponse();
 				$response->getBody()->write('405 NOT ALLOWED');
 				return $response->withStatus(405);
 			}
 		);
 		
-		$errorMiddleware->setDefaultErrorHandler(function (Request $request, Throwable $exception, bool $displayErrorDetails) {
+		$errorMiddleware->setDefaultErrorHandler(function (Request $request, Throwable $exception) {
 			return ResponseFactory::fromException($exception);
 		});
 	}
