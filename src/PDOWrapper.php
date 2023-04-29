@@ -7,7 +7,7 @@ use DateTimeZone;
 use MP\ErrorHandling\InternalDescriptiveException;
 use PDO;
 use PDOException;
-use PDOStatement;
+use Throwable;
 
 class PDOWrapper {
 	private static null|PDO $pdo = null;
@@ -38,81 +38,41 @@ class PDOWrapper {
 		return $e->getCode() == 23000 && str_starts_with($e->getMessage(), 'SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry \'');
 	}
 	
-	//TBI: Some say this method of finding unique IDs is bad, due to unpredictable runtime. I say it is pure, as the result is truly random.
-	public static function uniqueInjector(PDOStatement $query, array $arguments, string $uniqueKey, callable $generationCallback, bool $returningQuery = false) : null|string|array {
-		$attemptInjection = function() use($query, &$arguments, $uniqueKey, $generationCallback, $returningQuery): null|string|array {
-			try {
-				$uniqueValue = $generationCallback();
-				$arguments[$uniqueKey] = $uniqueValue; //Initialize/Update the new unique key to insert
-				$query->execute($arguments);
-				if(!$returningQuery) {
-					return $uniqueValue;
-				}
-				$result = $query->fetch(); //Return the unique key that is actually being used - to reference it later.
-				if($result === false) {
-					throw new InternalDescriptiveException('Fetch failed (false), while trying to unique inject an entry.');
-				}
-				return $result;
-			} catch (PDOException $e) {
-				//Validate, that the expected error happens (unique key constrain issue):
-				if(!self::isUniqueConstrainViolation($e)) {
-					throw $e;
-				}
-				return null;
-			}
-		};
-		
-		return self::repeatedAttempt($attemptInjection);
-	}
-	
-	private static function repeatedAttempt(callable $executable): mixed {
-		$startTime = microtime(true);
-		
-		//Try at least 5 times:
-		for($i = 0; $i < 5; $i++) {
-			$result = $executable();
-			if($result !== null) {
-				return $result;
-			}
-		}
-		
-		//If the duration exceeded half a second, stop - we do not want to flood the DB - or wait forever - something is wrong here!
-		while((microtime(true) - $startTime) < 0.5) {
-			$result = $executable();
-			if($result !== null) {
-				return $result;
-			}
-		}
-		
-		//Tried for longer than half a second, stop trying now.
-		return null;
-	}
-	
-	public static function uniqueIdentifierInjector(string $table, string $column, int $id, callable $idGenerator) : null|string {
-		$statement = PDOWrapper::getPDO()->prepare('
-			UPDATE ' . $table .'
-			SET ' . $column . ' = :value
-			WHERE id = :id
-		');
-		$arguments = [
+	public static function deleteByID(string $table, int $id): void {
+		PDOWrapper::getPDO()->prepare('
+				DELETE FROM ' . $table . '
+				WHERE id = :id
+		')->execute([
 			'id' => $id,
-		];
-		
-		$attemptInjection = function() use($statement, $column, &$arguments, $idGenerator): null|string {
-			try {
-				$uniqueValue = $idGenerator();
-				$arguments['value'] = $uniqueValue; //Initialize/Update the new unique key to insert
-				$statement->execute($arguments);
-				return $uniqueValue;
-			} catch (PDOException $e) {
-				//Validate, that the expected error happens (unique key constrain issue):
-				if(!self::isUniqueConstrainViolation($e)) {
-					throw $e;
-				}
-				return null;
-			}
-		};
-		
-		return self::repeatedAttempt($attemptInjection);
+		]);
+	}
+	
+	public static function deleteByIDSafe(string $table, int $id): void {
+		try {
+			self::deleteByID($table, $id);
+		} catch (Throwable) {
+			//Do nothing, as this call is already part of a 'catch' section and run as cleanup.
+			//TODO: Forward errors to an error handler.
+		}
+	}
+	
+	public static function insertAndFetch(string $query, array $arguments = []): array {
+		$statement = PDOWrapper::getPDO()->prepare($query);
+		$statement->execute($arguments);
+		$result = $statement->fetch();
+		if($result === false) {
+			throw new InternalDescriptiveException('Fetch failed (false), while trying to insert a new thing.');
+		}
+		return $result;
+	}
+	
+	public static function insertAndFetchColumn(string $query, array $arguments = []): mixed {
+		$statement = PDOWrapper::getPDO()->prepare($query);
+		$statement->execute($arguments);
+		$result = $statement->fetchColumn();
+		if($result === false) {
+			throw new InternalDescriptiveException('FetchColumn failed (false), while trying to insert a new thing.');
+		}
+		return $result;
 	}
 }

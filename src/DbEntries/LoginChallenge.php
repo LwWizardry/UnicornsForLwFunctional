@@ -3,8 +3,10 @@
 namespace MP\DbEntries;
 
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\UniqueInjectorHelper;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
+use Throwable;
 
 class LoginChallenge {
 	public static function deleteOutdated(): void {
@@ -35,11 +37,13 @@ class LoginChallenge {
 	}
 	
 	public static function generateNewChallenge(): LoginChallenge {
+		$challengeID = PDOWrapper::insertAndFetch('
+			INSERT INTO login_challenges (creation_time)
+			VALUES (UTC_TIMESTAMP())
+			RETURNING id
+		')['id'];
+		
 		//Generate
-		$generateRandomSessionID = function (): string {
-			$random_bytes = random_bytes(24);
-			return base64_encode($random_bytes);
-		};
 		$generateRandomChallenge = function (): string {
 			$templates = [
 				'Super mega nice challenge with ID {0} that will do for the {1}\'s test!',
@@ -54,28 +58,12 @@ class LoginChallenge {
 			return str_replace('{1}', $random_two, $challenge);
 		};
 		
-		$statement = PDOWrapper::getPDO()->prepare('
-			INSERT INTO login_challenges
-			    (session, creation_time)
-			VALUES (:session, UTC_TIMESTAMP())
-		');
-		$session = PDOWrapper::uniqueInjector($statement, [], 'session', $generateRandomSessionID);
-		if ($session === null) {
-			throw new InternalDescriptiveException('Failed to generate a unique login session.');
-		}
-		
-		//We found a session, lets add a challenge:
-		$statement = PDOWrapper::getPDO()->prepare('
-			UPDATE login_challenges
-			SET login_challenges.challenge = :challenge
-			WHERE login_challenges.session = :session
-		');
-		$arguments = [
-			'session' => $session,
-		];
-		$challenge = PDOWrapper::uniqueInjector($statement, $arguments, 'challenge', $generateRandomChallenge);
-		if ($challenge === null) {
-			throw new InternalDescriptiveException('Failed to generate a unique login challenge.');
+		try {
+			$session = UniqueInjectorHelper::largeIdentifier('login_challenges', $challengeID, 'session');
+			$challenge = UniqueInjectorHelper::inject('login_challenges', $challengeID, 'challenge', $generateRandomChallenge);
+		} catch (Throwable $e) {
+			PDOWrapper::deleteByIDSafe('login_challenges', $challengeID);
+			throw $e;
 		}
 		
 		return new LoginChallenge($session, $challenge, null);
@@ -157,13 +145,11 @@ class LoginChallenge {
 		return $this->createdAt;
 	}
 	
-	public function delete(): void {
-		$statement = PDOWrapper::getPDO()->prepare('
-			DELETE FROM login_challenges
-			WHERE id = :id
-		');
-		$statement->execute([
-			'id' => $this->id,
-		]);
+	public function delete(bool $safe = false): void {
+		if($safe) {
+			PDOWrapper::deleteByIDSafe('login_challenges', $this->id);
+		} else {
+			PDOWrapper::deleteByID('login_challenges', $this->id);
+		}
 	}
 }

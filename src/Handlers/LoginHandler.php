@@ -162,7 +162,7 @@ class LoginHandler {
 		
 		$response = LoginManager::finalizeLogin($response, $loginChallenge);
 		//We got the response for the user, clean up by deleting the challenge:
-		$loginChallenge->delete();
+		$loginChallenge->delete(true); //Ignore errors, as the login was already successful.
 		return $response;
 	}
 	

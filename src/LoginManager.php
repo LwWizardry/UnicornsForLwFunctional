@@ -6,7 +6,10 @@ use MP\DbEntries\LoginChallenge;
 use MP\DbEntries\LWUser;
 use MP\DbEntries\User;
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\UniqueInjectorHelper;
+use PDOException;
 use Psr\Http\Message\ResponseInterface as Response;
+use Throwable;
 
 class LoginManager {
 	public static function finalizeLogin(Response $response, LoginChallenge $loginChallenge): Response {
@@ -36,7 +39,12 @@ class LoginManager {
 			//Attempt to create a user:
 			$userToAuth = User::createEmpty($loginChallenge->getCreatedAt());
 			//With user created, try to create link to LW-User - if this fails, rollback the new user.
-			$lwUser = LWUser::tryToCreate($userToAuth->getId(), $lwAuthor);
+			try {
+				$lwUser = LWUser::tryToCreate($userToAuth->getId(), $lwAuthor);
+			} catch (PDOException $e) {
+				$userToAuth->deletePrototype(true); //Clean up!
+				throw $e;
+			}
 			if($lwUser !== null) {
 				//Great, the user got created without issues, parse it and continue:
 				return self::loginProcessCreateSession($response, $userToAuth, $lwUser);
@@ -94,18 +102,19 @@ class LoginManager {
 	
 	private static function loginProcessCreateSession(Response $response, User $userToAuth, LWUser $lwUser): Response {
 		//We got a valid user to auth, create session:
-		$tokenGeneration = function(): string {
-			return base64_encode(random_bytes(24));
-		};
-		$statement = PDOWrapper::getPDO()->prepare('
-			INSERT INTO sessions (token, issued_at, last_usage_at, user)
-			VALUES (:token, UTC_TIMESTAMP(), UTC_TIMESTAMP(), :user)
-		');
-		$token = PDOWrapper::uniqueInjector($statement, [
+		$sessionID = PDOWrapper::insertAndFetchColumn('
+			INSERT INTO sessions (issued_at, last_usage_at, user)
+			VALUES (UTC_TIMESTAMP(), UTC_TIMESTAMP(), :user)
+			RETURNING id
+		', [
 			'user' => $userToAuth->getId(),
-		], 'token', $tokenGeneration);
-		if($token === null) {
-			throw new InternalDescriptiveException('Failed to generate auth token for session.');
+		]);
+		
+		try {
+			$token = UniqueInjectorHelper::largeIdentifier('sessions', $sessionID, 'token');
+		} catch (Throwable $e) {
+			PDOWrapper::deleteByIDSafe('sessions', $sessionID);
+			throw $e;
 		}
 		
 		//Return valid session:

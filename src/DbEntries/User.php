@@ -4,30 +4,28 @@ namespace MP\DbEntries;
 
 use MP\ErrorHandling\BadRequestException;
 use MP\ErrorHandling\InternalDescriptiveException;
-use MP\Helpers\Base32;
+use MP\Helpers\UniqueInjectorHelper;
 use MP\PDOWrapper;
+use Throwable;
 
 class User {
 	public static function createEmpty(string $acceptedPPAt): null|User {
-		$idGenerator = function (): string {
-			$bytes = random_bytes(5);
-			return Base32::encode($bytes);
-		};
-		$statement = PDOWrapper::getPDO()->prepare('
-			INSERT INTO users (identifier, created_at, privacy_policy_accepted_at)
-			VALUES (:identifier, UTC_TIMESTAMP(), :privacy_policy_accepted_at)
-			RETURNING id, identifier, created_at
-		');
-		$identifierBeingUsed = PDOWrapper::uniqueInjector($statement, [
-			'privacy_policy_accepted_at' => $acceptedPPAt, //No formatting, as this comes straight from the DB.
-		], 'identifier', $idGenerator, true);
-		if ($identifierBeingUsed === null) {
-			throw new InternalDescriptiveException('Failed to generate a unique user identifier.');
-		}
+		$result = PDOWrapper::insertAndFetch('
+			INSERT INTO users (created_at, privacy_policy_accepted_at)
+			VALUES (UTC_TIMESTAMP(), :privacy_policy_accepted_at)
+			RETURNING id, created_at
+		', [
+			'privacy_policy_accepted_at' => $acceptedPPAt,
+		]);
+		$id = $result['id'];
+		$created_at = $result['created_at'];
 		
-		$id = $identifierBeingUsed['id'];
-		$identifier = $identifierBeingUsed['identifier'];
-		$created_at = $identifierBeingUsed['created_at'];
+		try {
+			$identifier = UniqueInjectorHelper::shortIdentifier('users', $id);
+		} catch (Throwable $e) {
+			PDOWrapper::deleteByIDSafe('users', $id);
+			throw $e;
+		}
 		
 		return new User($id, $identifier, $created_at, $acceptedPPAt);
 	}
@@ -70,8 +68,13 @@ class User {
 	private string $createdAt;
 	private string $acceptedPPAt;
 	
-	public function __construct(int $id, string $identifier, string $createdAt, string $acceptedPPAt) {
+	public function __construct(int $id, null|string $identifier, string $createdAt, string $acceptedPPAt) {
 		$this->id = $id;
+		//TBI: Check somewhere else or in the constructors of this object?
+		if($identifier === null) {
+			//Whoops something went heavily wrong in the setup of this user!
+			throw new InternalDescriptiveException('Attempted to create user object with "null" identifier!');
+		}
 		$this->identifier = $identifier;
 		$this->createdAt = $createdAt;
 		$this->acceptedPPAt = $acceptedPPAt;
@@ -93,14 +96,12 @@ class User {
 		return $this->acceptedPPAt;
 	}
 	
-	public function deletePrototype(): void {
-		$statement = PDOWrapper::getPDO()->prepare('
-			DELETE FROM users
-			WHERE id = :id
-		');
-		$statement->execute([
-			'id' => $this->id,
-		]);
+	public function deletePrototype(bool $safe = false): void {
+		if($safe) {
+			PDOWrapper::deleteByIDSafe('users', $this->id);
+		} else {
+			PDOWrapper::deleteByID('users', $this->id);
+		}
 	}
 	
 	public function updateAcceptPPAt(string $acceptedPPAt): void {
