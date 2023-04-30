@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-use MP\PDOWrapper;
+use MP\DbEntries\ModSummary;
 use MP\SlimSetup;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -42,33 +42,20 @@ SlimSetup::getSlim()->get('/mod/{name}[/]', function (Request $request, Response
 		$url_title = 'mod-' . $mod_name;
 		
 		try {
-			//Try to find 'identifier' in the DB mods table:
-			$statement = PDOWrapper::getPDO()->prepare('
-				SELECT title, caption
-				FROM mods
-				WHERE identifier = :identifier
-			');
-			$statement->execute([
-				'identifier' => $identifier,
-			]);
-			$result = $statement->fetchAll();
-			$foundMods = count($result);
-			if($foundMods == 0) {
+			$modSummary = ModSummary::getModFromIdentifier($identifier);
+			//TODO: Or if not visible.
+			if($modSummary === null) {
 				$title = 'Not existing mod';
 				$search_title = 'Mod 404';
 				$search_description = 'Mod does not exist on Mod Portal.';
 				//Keep URL title as is.
-			} else if($foundMods == 1) {
-				$result = $result[0];
-				$real_name = $result['title'];
-				$real_caption = $result['caption'];
-				
+			} else {
 				//In case that the DB lookup delivers one mod, use this format:
-				$title = 'Mod: ' . $real_name;
+				$title = 'Mod: ' . $modSummary->getTitle();
 				$search_title = $title;
-				$search_description = $real_caption;
+				$search_description = $modSummary->getCaption();
 				$url_title = $title;
-			} //Else do nothing, as something fatal happened. The identifier should be unique in the DB.
+			}
 		} catch (Throwable) {
 			//TODO: Handle exception, as in send it somewhere. For now lets not bother.
 		}
