@@ -63,6 +63,28 @@ class User {
 		);
 	}
 	
+	public static function fromIdentifier(string $identifier): null|User {
+		$statement = PDOWrapper::getPDO()->prepare('
+			SELECT *
+			FROM users
+			WHERE identifier = :identifier
+		');
+		$statement->execute([
+			'identifier' => $identifier,
+		]);
+		$result = $statement->fetch();
+		if($result === false) {
+			return null;
+		}
+		
+		return new User(
+			$result['id'],
+			$result['identifier'],
+			$result['created_at'],
+			$result['privacy_policy_accepted_at'],
+		);
+	}
+	
 	private int $id;
 	private string $identifier;
 	private string $createdAt;

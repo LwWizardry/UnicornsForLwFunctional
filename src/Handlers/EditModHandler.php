@@ -4,19 +4,16 @@ namespace MP\Handlers;
 
 use MP\DbEntries\ModSummary;
 use MP\DbEntries\User;
-use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\JsonValidator;
-use MP\Helpers\UniqueInjectorHelper;
-use MP\PDOWrapper;
 use MP\ResponseFactory;
 use MP\SlimSetup;
-use PDOException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class EditModHandler {
 	public static function initializeRouteHandlers(): void {
 		SlimSetup::getSlim()->post('/mod/post', self::addMod(...));
+		SlimSetup::getSlim()->get('/mod/user-list', self::listModsOfUser(...));
 	}
 	
 	public static function addMod(Request $request, Response $response): Response {
@@ -59,5 +56,31 @@ class EditModHandler {
 		return ResponseFactory::writeJsonData($response, [
 			'identifier' => $modSummary->getIdentifier(),
 		]);
+	}
+	
+	public static function listModsOfUser(Request $request, Response $response): Response {
+		$params = $request->getQueryParams();
+		if(!isset($params['identifier'])) {
+			return ResponseFactory::writeBadRequestError($response, 'Missing "identifier" query in URL.');
+		}
+		$identifier = $params['identifier'];
+		if(empty($identifier)) {
+			return ResponseFactory::writeBadRequestError($response, 'Missing "identifier" query value in URL.');
+		}
+		//Now the user identifier is known. Try getting a user for it:
+		$user = User::fromIdentifier($identifier);
+		if($user === null) {
+			return ResponseFactory::writeJsonData($response, []); //No mod.
+			//return ResponseFactory::writeBadRequestError($response, 'User does not exist.');
+		}
+		//Now the user in question is there...
+		
+		$mods = ModSummary::getSummariesForUser($user);
+		return ResponseFactory::writeJsonData($response, array_map(
+			function ($mod) {
+				return $mod->asFrontEndJSON();
+			},
+			$mods
+		));
 	}
 }

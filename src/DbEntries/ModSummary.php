@@ -9,10 +9,10 @@ use PDOException;
 class ModSummary {
 	public static function getModFromIdentifier(string $identifier): null|ModSummary {
 		$statement = PDOWrapper::getPDO()->prepare('
-				SELECT title, caption
-				FROM mods
-				WHERE identifier = :identifier
-			');
+			SELECT title, caption
+			FROM mods
+			WHERE identifier = :identifier
+		');
 		$statement->execute([
 			'identifier' => $identifier,
 		]);
@@ -29,7 +29,6 @@ class ModSummary {
 	}
 	
 	public static function addNewMod(string $title, string $caption, User $user): null|ModSummary {
-		
 		//TODO: Improve title validation, remove "'" and other funny characters.
 		// Can probably be expanded on demand.
 		//Sanitise title, by making it lowercase:
@@ -76,6 +75,31 @@ class ModSummary {
 		);
 	}
 	
+	/**
+	 * @return ModSummary[]
+	 */
+	public static function getSummariesForUser(User $user): array {
+		$statement = PDOWrapper::getPDO()->prepare('
+			SELECT identifier, title, caption
+			FROM mods
+			WHERE owner = :owner
+		');
+		$statement->execute([
+			'owner' => $user->getDbId(),
+		]);
+		$result = $statement->fetchAll();
+		
+		$mods = [];
+		foreach($result as $entry) {
+			$mods[] = new ModSummary(
+				$entry['identifier'],
+				$entry['title'],
+				$entry['caption'],
+			);
+		}
+		return $mods;
+	}
+	
 	private string $identifier;
 	
 	private string $title;
@@ -98,5 +122,13 @@ class ModSummary {
 	
 	public function getCaption(): string {
 		return $this->caption;
+	}
+	
+	public function asFrontEndJSON(): array {
+		return [
+			'identifier' => $this->identifier,
+			'title' => $this->title,
+			'caption' => $this->caption,
+		];
 	}
 }
