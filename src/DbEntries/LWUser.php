@@ -46,7 +46,7 @@ class LWUser {
 		$this->flair = $flair;
 	}
 	
-	public function getId(): int {
+	public function getDbId(): int {
 		return $this->id;
 	}
 	

@@ -80,7 +80,7 @@ class User {
 		$this->acceptedPPAt = $acceptedPPAt;
 	}
 	
-	public function getId(): int {
+	public function getDbId(): int {
 		return $this->id;
 	}
 	

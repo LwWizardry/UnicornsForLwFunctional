@@ -46,7 +46,7 @@ class ModSummary {
 				'title' => $title,
 				'title_sane' => $title_sane,
 				'caption' => $caption,
-				'owner' => $user->getId(),
+				'owner' => $user->getDbId(),
 			]);
 		} catch (PDOException $e) {
 			if(PDOWrapper::isUniqueConstrainViolation($e)) {

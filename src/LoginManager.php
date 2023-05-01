@@ -40,7 +40,7 @@ class LoginManager {
 			$userToAuth = User::createEmpty($loginChallenge->getCreatedAt());
 			//With user created, try to create link to LW-User - if this fails, rollback the new user.
 			try {
-				$lwUser = LWUser::tryToCreate($userToAuth->getId(), $lwAuthor);
+				$lwUser = LWUser::tryToCreate($userToAuth->getDbId(), $lwAuthor);
 			} catch (PDOException $e) {
 				$userToAuth->deletePrototype(true); //Clean up!
 				throw $e;
@@ -107,7 +107,7 @@ class LoginManager {
 			VALUES (UTC_TIMESTAMP(), UTC_TIMESTAMP(), :user)
 			RETURNING id
 		', [
-			'user' => $userToAuth->getId(),
+			'user' => $userToAuth->getDbId(),
 		]);
 		
 		try {
