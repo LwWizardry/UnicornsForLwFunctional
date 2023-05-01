@@ -49,7 +49,7 @@ class EditModHandler {
 		
 		//TODO: Also somehow store somewhere which user created something... Ehm...
 		
-		$modSummary = ModSummary::addNewMod($title, $caption);
+		$modSummary = ModSummary::addNewMod($title, $caption, $user);
 		if($modSummary === null) {
 			return ResponseFactory::writeFailureMessage($response, 'A mod with a title like this already exists!');
 		}

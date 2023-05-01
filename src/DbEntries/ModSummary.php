@@ -28,7 +28,7 @@ class ModSummary {
 		);
 	}
 	
-	public static function addNewMod(string $title, string $caption): null|ModSummary {
+	public static function addNewMod(string $title, string $caption, User $user): null|ModSummary {
 		
 		//TODO: Improve title validation, remove "'" and other funny characters.
 		// Can probably be expanded on demand.
@@ -39,13 +39,14 @@ class ModSummary {
 		
 		try {
 			$entryID = PDOWrapper::insertAndFetchColumn('
-				INSERT INTO mods (title, title_sane, caption, created_at)
-				VALUES (:title, :title_sane, :caption, UTC_TIMESTAMP())
+				INSERT INTO mods (title, title_sane, caption, created_at, owner)
+				VALUES (:title, :title_sane, :caption, UTC_TIMESTAMP(), :owner)
 				RETURNING id
 			', [
 				'title' => $title,
 				'title_sane' => $title_sane,
 				'caption' => $caption,
+				'owner' => $user->getId(),
 			]);
 		} catch (PDOException $e) {
 			if(PDOWrapper::isUniqueConstrainViolation($e)) {
