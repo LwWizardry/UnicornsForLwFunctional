@@ -60,7 +60,7 @@ class EditModHandler {
 	
 	public static function listModsOfUser(Request $request, Response $response): Response {
 		$params = $request->getQueryParams();
-		if(!isset($params['identifier'])) {
+		if(!array_key_exists('identifier', $params)) {
 			return ResponseFactory::writeBadRequestError($response, 'Missing "identifier" query in URL.');
 		}
 		$identifier = $params['identifier'];

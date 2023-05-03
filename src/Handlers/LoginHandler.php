@@ -21,16 +21,16 @@ class LoginHandler {
 	private static function onNewToken(Request $request, Response $response): Response {
 		//Validate, that the user agrees to the 'privacy policy':
 		$parameter = $request->getQueryParams();
-		if(!isset($parameter['privacy-policy'])) {
+		if(!array_key_exists('privacy-policy', $parameter)) {
 			return ResponseFactory::writeBadRequestError($response, 'Missing privacy policy statement');
 		}
-		if($parameter['privacy-policy'] != 'accept') {
+		if($parameter['privacy-policy'] !== 'accept') {
 			return ResponseFactory::writeBadRequestError($response, 'Called API with the intention of not accepting privacy policy');
 		}
-		if(!isset($parameter['terms-of-service'])) {
+		if(!array_key_exists('terms-of-service', $parameter)) {
 			return ResponseFactory::writeBadRequestError($response, 'Missing terms of service statement');
 		}
-		if($parameter['terms-of-service'] != 'accept') {
+		if($parameter['terms-of-service'] !== 'accept') {
 			return ResponseFactory::writeBadRequestError($response, 'Called API with the intention of not accepting terms of service');
 		}
 		

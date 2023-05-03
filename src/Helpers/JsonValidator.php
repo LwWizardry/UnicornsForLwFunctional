@@ -8,6 +8,7 @@ use JsonException;
 use MP\ErrorHandling\InternalDescriptiveException;
 
 class JsonValidator {
+	//TODO: Add custom JSON exception type, to catch and wrap.
 	public static function parseJson(string $input): array {
 		try {
 			return json_decode(
@@ -22,7 +23,7 @@ class JsonValidator {
 	}
 	
 	public static function hasKey(array $object, string $key): bool {
-		return isset($object[$key]);
+		return array_key_exists($key, $object);
 	}
 	
 	public static function expectKey(array $object, string $key): mixed {

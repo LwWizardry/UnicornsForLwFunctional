@@ -55,7 +55,7 @@ class HandlerList {
 	
 	public static function modDetails(Request $request, Response $response): Response {
 		$params = $request->getQueryParams();
-		if(!isset($params['identifier'])) {
+		if(!array_key_exists('identifier', $params)) {
 			return ResponseFactory::writeBadRequestError($response, 'Missing "identifier" query in URL.');
 		}
 		$identifier = $params['identifier'];
