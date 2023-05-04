@@ -48,8 +48,10 @@ class LoginChallenge {
 		$generateRandomChallenge = function (): string {
 			$templates = [
 				'Super mega nice challenge with ID {0} that will do for the {1}\'s test!',
-				'{0} Nice login challenge into the mod portal. With number {1} lel.',
-				'It has {0} mods! (I wish). And I wanna check the portal out. Soon it has {1} mods!',
+				//'{0} Nice login challenge into the mod portal. With number {1} lel.',
+				'{0} discover a place full of surprises. With {1} tree features.',
+				//'It has {0} mods! (I wish). And I wanna check the portal out. Soon it has {1} mods!',
+				'It has {0} features! (or so). And I wanna check that place out. Soon it has {1} features!',
 			];
 			$template_index = random_int(0, count($templates) - 1);
 			$random_one = random_int(1, 999999999);
