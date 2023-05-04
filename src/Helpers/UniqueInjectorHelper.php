@@ -3,6 +3,7 @@
 namespace MP\Helpers;
 
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\UpdateBuilder;
 use MP\PDOWrapper;
 use PDOException;
 
@@ -41,6 +42,7 @@ class UniqueInjectorHelper {
 		string $column,
 		callable $generator,
 	): string {
+		//TBI: is it worth modifying the query builder to be able to be used here?
 		$statement = PDOWrapper::getPDO()->prepare('
 			UPDATE ' . $table .'
 			SET ' . $column . ' = :value

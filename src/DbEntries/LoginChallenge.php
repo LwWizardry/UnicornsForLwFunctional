@@ -3,6 +3,7 @@
 namespace MP\DbEntries;
 
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\UpdateBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
@@ -116,21 +117,13 @@ class LoginChallenge {
 	
 	public function updateWithAuthor(LWAuthor $author): void {
 		$this->author = $author;
-		PDOWrapper::getPDO()->prepare('
-			UPDATE login_challenges
-			SET
-				lw_id = :lw_id,
-				lw_name = :lw_name,
-				lw_picture = :lw_picture,
-				lw_flair = :lw_flair
-			WHERE session = :session
-		')->execute([
-			'session' => $this->session,
-			'lw_id' => $this->author->getId(),
-			'lw_name' => $this->author->getUsername(),
-			'lw_picture' => $this->author->getPicture(),
-			'lw_flair' => $this->author->getFlair(),
-		]);
+		(new UpdateBuilder('login_challenges'))
+			->setValue('lw_id', $this->author->getId())
+			->setValue('lw_name', $this->author->getUsername())
+			->setValue('lw_picture', $this->author->getPicture())
+			->setValue('lw_flair', $this->author->getFlair())
+			->whereValue('session', $this->session)
+			->execute();
 	}
 	
 	public function hasAuthor(): bool {

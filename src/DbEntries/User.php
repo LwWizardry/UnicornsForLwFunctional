@@ -4,6 +4,7 @@ namespace MP\DbEntries;
 
 use MP\ErrorHandling\BadRequestException;
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\UpdateBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\PDOWrapper;
 use Throwable;
@@ -47,13 +48,10 @@ class User {
 		$result = $result[0];
 		
 		//Update timestamp of token:
-		PDOWrapper::getPDO()->prepare('
-			UPDATE sessions
-			SET last_usage_at = UTC_TIMESTAMP()
-			WHERE id = :id
-		')->execute([
-			'id' => $result['session_id'],
-		]);
+		(new UpdateBuilder('sessions'))
+			->setUTC('last_usage_at')
+			->whereValue('id', $result['session_id'])
+			->execute();
 		
 		return new User(
 			$result['user_id'],
@@ -127,15 +125,10 @@ class User {
 	}
 	
 	public function updateAcceptPPAt(string $acceptedPPAt): void {
-		PDOWrapper::getPDO()->prepare('
-				UPDATE users
-				SET privacy_policy_accepted_at = :newTime1
-				WHERE id = :id AND privacy_policy_accepted_at < :newTime2
-			')->execute([
-			'id' => $this->id,
-			//TBI: Yes, this kind of makes sense, but is there a better way?
-			'newTime1' => $acceptedPPAt,
-			'newTime2' => $acceptedPPAt,
-		]);
+		(new UpdateBuilder('users'))
+			->setValue('privacy_policy_accepted_at', $acceptedPPAt)
+			->whereValue('id', $this->id)
+			->whereValue('privacy_policy_accepted_at', $acceptedPPAt, '<')
+			->execute();
 	}
 }

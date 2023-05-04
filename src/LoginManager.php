@@ -6,6 +6,7 @@ use MP\DbEntries\LoginChallenge;
 use MP\DbEntries\LWUser;
 use MP\DbEntries\User;
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\UpdateBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use PDOException;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -146,13 +147,10 @@ class LoginManager {
 		$result = $result[0];
 		
 		//Update timestamp of token:
-		PDOWrapper::getPDO()->prepare('
-			UPDATE sessions
-			SET last_usage_at = UTC_TIMESTAMP()
-			WHERE id = :id
-		')->execute([
-			'id' => $result['id'],
-		]);
+		(new UpdateBuilder('sessions'))
+			->setUTC('last_usage_at')
+			->whereValue('id', $result['id'])
+			->execute();
 		
 		return ResponseFactory::writeJsonData($response, [
 			'identifier' => $result['identifier'],
