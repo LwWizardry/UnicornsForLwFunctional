@@ -49,6 +49,14 @@ class JsonValidator {
 		return $value;
 	}
 	
+	public static function getStringNullable(array $object, string $key): null|string {
+		$value = self::expectKey($object, $key);
+		if($value !== null && gettype($value) !== 'string') {
+			throw new InternalDescriptiveException('Expected value of key "' . $key . '" of type "string", but got ' . gettype($value) . ' in JSON: ' . json_encode($object));
+		}
+		return $value;
+	}
+	
 	public static function getUInt(array $object, string $key): int {
 		$value = self::expectKey($object, $key);
 		if(gettype($value) !== 'integer') {

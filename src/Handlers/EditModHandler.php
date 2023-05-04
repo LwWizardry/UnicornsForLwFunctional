@@ -2,11 +2,16 @@
 
 namespace MP\Handlers;
 
+use MP\DbEntries\ModDetails;
 use MP\DbEntries\ModSummary;
 use MP\DbEntries\User;
+use MP\ErrorHandling\BadRequestException;
 use MP\Helpers\JsonValidator;
+use MP\Helpers\QueryBuilder\UpdateBuilder;
+use MP\PDOWrapper;
 use MP\ResponseFactory;
 use MP\SlimSetup;
+use PDOException;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -14,6 +19,84 @@ class EditModHandler {
 	public static function initializeRouteHandlers(): void {
 		SlimSetup::getSlim()->post('/mod/post', self::addMod(...));
 		SlimSetup::getSlim()->get('/mod/user-list', self::listModsOfUser(...));
+		SlimSetup::getSlim()->post('/mod/edit', self::editMod(...));
+	}
+	
+	public static function editMod(Request $request, Response $response): Response {
+		//Get user making the request:
+		$authToken = SlimSetup::expectAuthorizationHeader($request);
+		$user = User::fromSession($authToken);
+		//At this point it is validated, that a logged-in user is making the request.
+		
+		//Parse data for this request:
+		$content = $request->getBody()->getContents();
+		$jsonContent = JsonValidator::parseJson($content);
+		$jsonData = JsonValidator::getObject($jsonContent, 'data');
+		
+		$modIdentifier = JsonValidator::getString($jsonData, 'identifier');
+		$newTitle = JsonValidator::getStringNullable($jsonData, 'newTitle');
+		$newCaption = JsonValidator::getStringNullable($jsonData, 'newCaption');
+		if($newTitle === null && $newCaption === null) {
+			throw new BadRequestException('No change in request.');
+		}
+		if($newTitle !== null) {
+			$newTitle = trim($newTitle);
+			$titleLength = iconv_strlen($newTitle, 'UTF-8');
+			if($titleLength === false) {
+				throw new BadRequestException('Invalid UTF-8 sequence for title');
+			}
+			if($titleLength < 3) {
+				return ResponseFactory::writeFailureMessage($response, 'Title must be at least 3 letters long.');
+			}
+			if($titleLength > 50) {
+				return ResponseFactory::writeFailureMessage($response, 'Title must not be longer than 3 letters.');
+			}
+		}
+		if($newCaption !== null) {
+			$newCaption = trim($newCaption);
+			$captionLength = iconv_strlen($newCaption, 'UTF-8');
+			if($captionLength === false) {
+				throw new BadRequestException('Invalid UTF-8 sequence for caption');
+			}
+			if($captionLength < 10) {
+				return ResponseFactory::writeFailureMessage($response, 'Caption must be at least 10 letters long.');
+			}
+			if($captionLength > 200) {
+				return ResponseFactory::writeFailureMessage($response, 'Caption must not be longer than 200 letters.');
+			}
+		}
+		//At this point, the request is valid.
+		
+		//Fetch mod data, to check what has to be changed:
+		$modDetails = ModDetails::getModFromIdentifier($modIdentifier);
+		if($modDetails === null) {
+			throw new BadRequestException('Mod does not exist.');
+		}
+		if($modDetails->getUser()->getIdentifier() !== $user->getIdentifier()) {
+			//TODO: Once a mod can be hidden. Check if it is public, and adjust the error accordingly.
+			throw new BadRequestException('No permission to edit this mod.');
+		}
+		//Request may actually be performed - as mod exist and user has permissions for it.
+		
+		$builder = new UpdateBuilder('mods');
+		if($newTitle !== null) {
+			$builder->setValue('title', $newTitle);
+		}
+		if($newCaption !== null) {
+			$builder->setValue('caption', $newCaption);
+		}
+		$builder->whereValue('identifier', $modIdentifier);
+		try {
+			$builder->execute();
+		} catch (PDOException $e) {
+			if(PDOWrapper::isUniqueConstrainViolation($e)) {
+				return ResponseFactory::writeFailureMessage($response, 'Mod title is already used by another mod.');
+			}
+			throw $e;
+		}
+		//TBI: Update fields?
+		
+		return ResponseFactory::writeJsonData($response, []);
 	}
 	
 	public static function addMod(Request $request, Response $response): Response {
@@ -29,22 +112,30 @@ class EditModHandler {
 		$title = JsonValidator::getString($jsonData, 'title');
 		$caption = JsonValidator::getString($jsonData, 'caption');
 		
-		if(strlen($title) > 50) {
-			//TBI: Error type, front-end should have caught this...
-			return ResponseFactory::writeFailureMessage($response, 'Title is too long.');
+		$title = trim($title);
+		$titleLength = iconv_strlen($title, 'UTF-8');
+		//TBI: Error type, front-end should have caught this... (for all following checks)
+		if($titleLength === false) {
+			throw new BadRequestException('Invalid UTF-8 sequence for title');
 		}
-		$captionLength = strlen($caption);
+		if($titleLength < 3) {
+			return ResponseFactory::writeFailureMessage($response, 'Title must be at least 3 letters long.');
+		}
+		if($titleLength > 50) {
+			return ResponseFactory::writeFailureMessage($response, 'Title must not be longer than 3 letters.');
+		}
+		$caption = trim($caption);
+		$captionLength = iconv_strlen($caption, 'UTF-8');
+		if($captionLength === false) {
+			throw new BadRequestException('Invalid UTF-8 sequence for caption');
+		}
 		if($captionLength < 10) {
-			//TBI: Error type, front-end should have caught this...
-			return ResponseFactory::writeFailureMessage($response, 'Caption is too short.');
+			return ResponseFactory::writeFailureMessage($response, 'Caption must be at least 10 letters long.');
 		}
 		if($captionLength > 200) {
-			//TBI: Error type, front-end should have caught this...
-			return ResponseFactory::writeFailureMessage($response, 'Caption is too long.');
+			return ResponseFactory::writeFailureMessage($response, 'Caption must not be longer than 200 letters.');
 		}
 		//At this point the request data is valid.
-		
-		//TODO: Also somehow store somewhere which user created something... Ehm...
 		
 		$modSummary = ModSummary::addNewMod($title, $caption, $user);
 		if($modSummary === null) {
