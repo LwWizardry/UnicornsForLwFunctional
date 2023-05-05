@@ -3,6 +3,8 @@
 namespace MP\DbEntries;
 
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\Conditions;
+use MP\Helpers\QueryBuilder\DeleteBuilder;
 use MP\Helpers\QueryBuilder\UpdateBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\LwApi\LWAuthor;
@@ -11,10 +13,9 @@ use Throwable;
 
 class LoginChallenge {
 	public static function deleteOutdated(): void {
-		PDOWrapper::getPDO()->prepare('
-			DELETE FROM login_challenges
-			WHERE creation_time < UTC_TIMESTAMP() - interval 1 hour
-		')->execute();
+		(new DeleteBuilder('login_challenges'))
+			->whereCondition(Conditions::olderThenHours('creation_time', 1))
+			->execute();
 	}
 	
 	public static function getChallengeForSession(string $sessionID): null|LoginChallenge {
@@ -120,10 +121,12 @@ class LoginChallenge {
 	public function updateWithAuthor(LWAuthor $author): void {
 		$this->author = $author;
 		(new UpdateBuilder('login_challenges'))
-			->setValue('lw_id', $this->author->getId())
-			->setValue('lw_name', $this->author->getUsername())
-			->setValue('lw_picture', $this->author->getPicture())
-			->setValue('lw_flair', $this->author->getFlair())
+			->setValues([
+				'lw_id' => $this->author->getId(),
+				'lw_name' => $this->author->getUsername(),
+				'lw_picture' => $this->author->getPicture(),
+				'lw_flair' => $this->author->getFlair(),
+			])
 			->whereValue('session', $this->session)
 			->execute();
 	}
