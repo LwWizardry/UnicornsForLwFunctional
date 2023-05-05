@@ -8,6 +8,7 @@ use MP\DbEntries\User;
 use MP\ErrorHandling\BadRequestException;
 use MP\Helpers\JsonValidator;
 use MP\Helpers\QueryBuilder\UpdateBuilder;
+use MP\Helpers\UTF8Helper;
 use MP\PDOWrapper;
 use MP\ResponseFactory;
 use MP\SlimSetup;
@@ -39,31 +40,13 @@ class EditModHandler {
 		if($newTitle === null && $newCaption === null) {
 			throw new BadRequestException('No change in request.');
 		}
-		if($newTitle !== null) {
-			$newTitle = trim($newTitle);
-			$titleLength = iconv_strlen($newTitle, 'UTF-8');
-			if($titleLength === false) {
-				throw new BadRequestException('Invalid UTF-8 sequence for title');
-			}
-			if($titleLength < 3) {
-				return ResponseFactory::writeFailureMessage($response, 'Title must be at least 3 letters long.');
-			}
-			if($titleLength > 50) {
-				return ResponseFactory::writeFailureMessage($response, 'Title must not be longer than 3 letters.');
-			}
-		}
-		if($newCaption !== null) {
-			$newCaption = trim($newCaption);
-			$captionLength = iconv_strlen($newCaption, 'UTF-8');
-			if($captionLength === false) {
-				throw new BadRequestException('Invalid UTF-8 sequence for caption');
-			}
-			if($captionLength < 10) {
-				return ResponseFactory::writeFailureMessage($response, 'Caption must be at least 10 letters long.');
-			}
-			if($captionLength > 200) {
-				return ResponseFactory::writeFailureMessage($response, 'Caption must not be longer than 200 letters.');
-			}
+		//TBI: Is trimming like this sufficient?
+		$newTitle = $newTitle !== null ? trim($newTitle) : null;
+		$newCaption = $newCaption !== null ? trim($newCaption) : null;
+		//TBI: Error type, front-end should have caught this... (for all following checks)
+		$result = self::checkTitleCaption($newTitle, $newCaption);
+		if($result !== null) {
+			return ResponseFactory::writeFailureMessage($response, $result);
 		}
 		//At this point, the request is valid.
 		
@@ -112,28 +95,13 @@ class EditModHandler {
 		$title = JsonValidator::getString($jsonData, 'title');
 		$caption = JsonValidator::getString($jsonData, 'caption');
 		
+		//TBI: Is trimming like this sufficient?
 		$title = trim($title);
-		$titleLength = iconv_strlen($title, 'UTF-8');
-		//TBI: Error type, front-end should have caught this... (for all following checks)
-		if($titleLength === false) {
-			throw new BadRequestException('Invalid UTF-8 sequence for title');
-		}
-		if($titleLength < 3) {
-			return ResponseFactory::writeFailureMessage($response, 'Title must be at least 3 letters long.');
-		}
-		if($titleLength > 50) {
-			return ResponseFactory::writeFailureMessage($response, 'Title must not be longer than 3 letters.');
-		}
 		$caption = trim($caption);
-		$captionLength = iconv_strlen($caption, 'UTF-8');
-		if($captionLength === false) {
-			throw new BadRequestException('Invalid UTF-8 sequence for caption');
-		}
-		if($captionLength < 10) {
-			return ResponseFactory::writeFailureMessage($response, 'Caption must be at least 10 letters long.');
-		}
-		if($captionLength > 200) {
-			return ResponseFactory::writeFailureMessage($response, 'Caption must not be longer than 200 letters.');
+		//TBI: Error type, front-end should have caught this... (for all following checks)
+		$result = self::checkTitleCaption($title, $caption);
+		if($result !== null) {
+			return ResponseFactory::writeFailureMessage($response, $result);
 		}
 		//At this point the request data is valid.
 		
@@ -173,5 +141,33 @@ class EditModHandler {
 			},
 			$mods
 		));
+	}
+	
+	private static function checkTitleCaption(null|string $title, null|string $caption): null|string {
+		if($title !== null) {
+			if(!UTF8Helper::isUTF8($title)) {
+				throw new BadRequestException('Invalid UTF-8 sequence for title');
+			}
+			$titleLength = mb_strlen($title, 'UTF-8');
+			if($titleLength < 3) {
+				return 'Title must have at least 3 letters.';
+			}
+			if($titleLength > 50) {
+				return 'Title must not be longer than 50 letters.';
+			}
+		}
+		if($caption !== null) {
+			if(!UTF8Helper::isUTF8($caption)) {
+				throw new BadRequestException('Invalid UTF-8 sequence for title');
+			}
+			$captionLength = mb_strlen($caption, 'UTF-8');
+			if($captionLength < 10) {
+				return 'Caption must have at least 10 letters.';
+			}
+			if($captionLength > 200) {
+				return 'Caption must not be longer than 200 letters.';
+			}
+		}
+		return null;
 	}
 }
