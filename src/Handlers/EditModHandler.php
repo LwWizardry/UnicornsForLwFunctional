@@ -7,7 +7,7 @@ use MP\DbEntries\ModSummary;
 use MP\DbEntries\User;
 use MP\ErrorHandling\BadRequestException;
 use MP\Helpers\JsonValidator;
-use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\Helpers\UTF8Helper;
 use MP\PDOWrapper;
 use MP\ResponseFactory;

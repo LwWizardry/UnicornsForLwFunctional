@@ -4,7 +4,7 @@ namespace MP\DbEntries;
 
 use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\QueryBuilder\Conditions;
-use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;

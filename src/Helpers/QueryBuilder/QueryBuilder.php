@@ -1,11 +1,11 @@
 <?php
 
-namespace MP\Helpers\QueryBuilder\Internal;
+namespace MP\Helpers\QueryBuilder;
 
-use MP\Helpers\QueryBuilder\DeleteBuilder;
-use MP\Helpers\QueryBuilder\InsertBuilder;
-use MP\Helpers\QueryBuilder\SelectBuilder;
-use MP\Helpers\QueryBuilder\UpdateBuilder;
+use MP\Helpers\QueryBuilder\Queries\DeleteBuilder;
+use MP\Helpers\QueryBuilder\Queries\InsertBuilder;
+use MP\Helpers\QueryBuilder\Queries\SelectBuilder;
+use MP\Helpers\QueryBuilder\Queries\UpdateBuilder;
 
 abstract class QueryBuilder {
 	protected string $table;

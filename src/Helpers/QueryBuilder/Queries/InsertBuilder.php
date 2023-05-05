@@ -1,10 +1,10 @@
 <?php
 
-namespace MP\Helpers\QueryBuilder;
+namespace MP\Helpers\QueryBuilder\Queries;
 
 use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\QueryBuilder\Internal\FieldValueTrait;
-use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\PDOWrapper;
 
 class InsertBuilder extends QueryBuilder {

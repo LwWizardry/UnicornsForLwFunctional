@@ -4,7 +4,7 @@ namespace MP;
 
 use DateTime;
 use DateTimeZone;
-use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder;
 use PDO;
 use PDOException;
 use Throwable;

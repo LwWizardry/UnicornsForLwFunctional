@@ -2,7 +2,7 @@
 
 namespace MP\DbEntries;
 
-use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
 use PDOException;

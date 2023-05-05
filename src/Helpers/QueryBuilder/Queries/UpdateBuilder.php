@@ -1,10 +1,10 @@
 <?php
 
-namespace MP\Helpers\QueryBuilder;
+namespace MP\Helpers\QueryBuilder\Queries;
 
 use MP\Helpers\QueryBuilder\Internal\ConditionalTrait;
 use MP\Helpers\QueryBuilder\Internal\FieldValueTrait;
-use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\PDOWrapper;
 
 class UpdateBuilder extends QueryBuilder {

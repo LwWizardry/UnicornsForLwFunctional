@@ -6,7 +6,7 @@ use MP\DbEntries\LoginChallenge;
 use MP\DbEntries\LWUser;
 use MP\DbEntries\User;
 use MP\ErrorHandling\InternalDescriptiveException;
-use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use PDOException;
 use Psr\Http\Message\ResponseInterface as Response;
