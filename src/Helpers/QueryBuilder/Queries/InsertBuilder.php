@@ -12,8 +12,8 @@ class InsertBuilder extends QueryBuilder {
 	
 	private array $returning = [];
 	
-	public function __construct(string $table) {
-		parent::__construct($table);
+	public function __construct(string $table, string $valuePrefix) {
+		parent::__construct($table, $valuePrefix);
 	}
 	
 	public function return(string ...$columns): self {

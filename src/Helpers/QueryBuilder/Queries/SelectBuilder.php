@@ -9,8 +9,8 @@ use MP\PDOWrapper;
 class SelectBuilder extends QueryBuilder {
 	use ConditionalTrait;
 	
-	public function __construct(string $table) {
-		parent::__construct($table);
+	public function __construct(string $table, string $valuePrefix) {
+		parent::__construct($table, $valuePrefix);
 	}
 	
 	//### SELECT ###
