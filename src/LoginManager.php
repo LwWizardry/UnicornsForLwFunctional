@@ -6,6 +6,7 @@ use MP\DbEntries\LoginChallenge;
 use MP\DbEntries\LWUser;
 use MP\DbEntries\User;
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\InsertBuilder;
 use MP\Helpers\QueryBuilder\UpdateBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use PDOException;
@@ -103,14 +104,12 @@ class LoginManager {
 	
 	private static function loginProcessCreateSession(Response $response, User $userToAuth, LWUser $lwUser): Response {
 		//We got a valid user to auth, create session:
-		$sessionID = PDOWrapper::insertAndFetchColumn('
-			INSERT INTO sessions (issued_at, last_usage_at, user)
-			VALUES (UTC_TIMESTAMP(), UTC_TIMESTAMP(), :user)
-			RETURNING id
-		', [
-			'user' => $userToAuth->getDbId(),
-		]);
-		
+		$sessionID = (new InsertBuilder('sessions'))
+			->setUTC('issued_at')
+			->setUTC('last_usage_at')
+			->setValue('user', $userToAuth->getDbId())
+			->return('id')
+			->execute();
 		try {
 			$token = UniqueInjectorHelper::largeIdentifier('sessions', $sessionID, 'token');
 		} catch (Throwable $e) {

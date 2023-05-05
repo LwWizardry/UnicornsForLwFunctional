@@ -25,8 +25,8 @@ class UpdateBuilder {
 	}
 	
 	public function setValues(array $values): UpdateBuilder {
-		foreach($values as $entry) {
-			$this->setValue($entry[0], $entry[1]);
+		foreach($values as $key => $value) {
+			$this->setValue($key, $value);
 		}
 		return $this;
 	}

@@ -53,24 +53,4 @@ class PDOWrapper {
 			//TODO: Forward errors to an error handler.
 		}
 	}
-	
-	public static function insertAndFetch(string $query, array $arguments = []): array {
-		$statement = PDOWrapper::getPDO()->prepare($query);
-		$statement->execute($arguments);
-		$result = $statement->fetch();
-		if($result === false) {
-			throw new InternalDescriptiveException('Fetch failed (false), while trying to insert a new thing.');
-		}
-		return $result;
-	}
-	
-	public static function insertAndFetchColumn(string $query, array $arguments = []): mixed {
-		$statement = PDOWrapper::getPDO()->prepare($query);
-		$statement->execute($arguments);
-		$result = $statement->fetchColumn();
-		if($result === false) {
-			throw new InternalDescriptiveException('FetchColumn failed (false), while trying to insert a new thing.');
-		}
-		return $result;
-	}
 }

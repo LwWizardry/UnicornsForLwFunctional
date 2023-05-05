@@ -2,6 +2,7 @@
 
 namespace MP\DbEntries;
 
+use MP\Helpers\QueryBuilder\InsertBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\PDOWrapper;
 use PDOException;
@@ -37,16 +38,16 @@ class ModSummary {
 		//Inject a mod entry into DB, Title/title_normalized/Caption - Warning: Title_sane can be a duplicate!
 		
 		try {
-			$entryID = PDOWrapper::insertAndFetchColumn('
-				INSERT INTO mods (title, title_sane, caption, created_at, owner)
-				VALUES (:title, :title_sane, :caption, UTC_TIMESTAMP(), :owner)
-				RETURNING id
-			', [
-				'title' => $title,
-				'title_sane' => $title_sane,
-				'caption' => $caption,
-				'owner' => $user->getDbId(),
-			]);
+			$entryID = (new InsertBuilder('mods'))
+				->setValues([
+					'title' => $title,
+					'title_sane' => $title_sane,
+					'caption' => $caption,
+					'owner' => $user->getDbId(),
+				])
+				->setUTC('created_at')
+				->return('id')
+				->execute();
 		} catch (PDOException $e) {
 			if(PDOWrapper::isUniqueConstrainViolation($e)) {
 				return null;

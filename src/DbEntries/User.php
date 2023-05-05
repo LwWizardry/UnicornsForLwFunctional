@@ -4,6 +4,7 @@ namespace MP\DbEntries;
 
 use MP\ErrorHandling\BadRequestException;
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\InsertBuilder;
 use MP\Helpers\QueryBuilder\UpdateBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\PDOWrapper;
@@ -11,13 +12,11 @@ use Throwable;
 
 class User {
 	public static function createEmpty(string $acceptedPPAt): null|User {
-		$result = PDOWrapper::insertAndFetch('
-			INSERT INTO users (created_at, privacy_policy_accepted_at)
-			VALUES (UTC_TIMESTAMP(), :privacy_policy_accepted_at)
-			RETURNING id, created_at
-		', [
-			'privacy_policy_accepted_at' => $acceptedPPAt,
-		]);
+		$result = (new InsertBuilder('users'))
+			->setUTC('created_at')
+			->setValue('privacy_policy_accepted_at', $acceptedPPAt)
+			->returns(['id', 'created_at'])
+			->execute();
 		$id = $result['id'];
 		$created_at = $result['created_at'];
 		

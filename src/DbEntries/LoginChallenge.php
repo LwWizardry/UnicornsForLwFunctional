@@ -5,6 +5,7 @@ namespace MP\DbEntries;
 use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\QueryBuilder\Conditions;
 use MP\Helpers\QueryBuilder\DeleteBuilder;
+use MP\Helpers\QueryBuilder\InsertBuilder;
 use MP\Helpers\QueryBuilder\UpdateBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\LwApi\LWAuthor;
@@ -39,11 +40,10 @@ class LoginChallenge {
 	}
 	
 	public static function generateNewChallenge(): LoginChallenge {
-		$challengeID = PDOWrapper::insertAndFetch('
-			INSERT INTO login_challenges (creation_time)
-			VALUES (UTC_TIMESTAMP())
-			RETURNING id
-		')['id'];
+		$challengeID = (new InsertBuilder('login_challenges'))
+			->setUTC('creation_time')
+			->return('id')
+			->execute();
 		
 		//Generate
 		$generateRandomChallenge = function (): string {

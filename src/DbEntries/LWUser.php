@@ -2,32 +2,30 @@
 
 namespace MP\DbEntries;
 
+use MP\Helpers\QueryBuilder\InsertBuilder;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
 use PDOException;
 
 class LWUser {
 	public static function tryToCreate(int $userID, LWAuthor $lwAuthor): null|LWUser {
-		$statement = PDOWrapper::getPDO()->prepare('
-			INSERT INTO lw_users (user, identifier, name, picture, flair)
-			VALUES (:user, :identifier, :name, :picture, :flair)
-			RETURNING id
-		');
 		try {
-			$statement->execute([
-				'user' => $userID,
-				'identifier' => $lwAuthor->getId(),
-				'name' => $lwAuthor->getUsername(),
-				'picture' => $lwAuthor->getPicture(),
-				'flair' => $lwAuthor->getFlair(),
-			]);
+			$id = (new InsertBuilder('lw_users'))
+				->setValues([
+					'user' => $userID,
+					'identifier' => $lwAuthor->getId(),
+					'name' => $lwAuthor->getUsername(),
+					'picture' => $lwAuthor->getPicture(),
+					'flair' => $lwAuthor->getFlair(),
+				])
+				->return('id')
+				->execute();
 		} catch (PDOException $e) {
 			if(PDOWrapper::isUniqueConstrainViolation($e)) {
 				return null; //Cannot create the user, as it is already created.
 			}
 			throw $e;
 		}
-		$id = $statement->fetchColumn();
 		
 		return new LWUser($id, $lwAuthor->getId(), $lwAuthor->getUsername(), $lwAuthor->getPicture(), $lwAuthor->getFlair());
 	}
