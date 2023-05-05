@@ -10,8 +10,7 @@ use PDOException;
 class ModSummary {
 	public static function getModFromIdentifier(string $identifier): null|ModSummary {
 		$result = QueryBuilder::select('mods')
-			->selectColumn('title')
-			->selectColumn('caption')
+			->selectColumn('title', 'caption')
 			->whereValue('identifier', $identifier)
 			->execute(true);
 		if($result === false) {
@@ -77,7 +76,7 @@ class ModSummary {
 	 */
 	public static function getSummariesForUser(User $user): array {
 		$result = QueryBuilder::select('mods')
-			->selectColumns('identifier', 'title', 'caption')
+			->selectColumn('identifier', 'title', 'caption')
 			->whereValue('owner', $user->getDbId())
 			->execute();
 		

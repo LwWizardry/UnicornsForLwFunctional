@@ -17,13 +17,10 @@ class SelectBuilder extends QueryBuilder {
 	
 	private array $selectors = [];
 	
-	public function selectColumn(string $column): self {
-		
-		return $this;
-	}
-	
-	public function selectColumns(string ...$columns): self {
-		
+	public function selectColumn(string ...$columns): self {
+		foreach($columns as $column) {
+			$this->selectors[] = $column;
+		}
 		return $this;
 	}
 	
