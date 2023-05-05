@@ -4,8 +4,7 @@ namespace MP;
 
 use DateTime;
 use DateTimeZone;
-use MP\ErrorHandling\InternalDescriptiveException;
-use MP\Helpers\QueryBuilder\DeleteBuilder;
+use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
 use PDO;
 use PDOException;
 use Throwable;
@@ -40,7 +39,7 @@ class PDOWrapper {
 	}
 	
 	public static function deleteByID(string $table, int $id): void {
-		(new DeleteBuilder($table))
+		QueryBuilder::delete($table)
 			->whereValue('id', $id)
 			->execute();
 	}

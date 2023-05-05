@@ -4,18 +4,17 @@ namespace MP\DbEntries;
 
 use MP\ErrorHandling\BadRequestException;
 use MP\ErrorHandling\InternalDescriptiveException;
-use MP\Helpers\QueryBuilder\InsertBuilder;
-use MP\Helpers\QueryBuilder\UpdateBuilder;
+use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\PDOWrapper;
 use Throwable;
 
 class User {
 	public static function createEmpty(string $acceptedPPAt): null|User {
-		$result = (new InsertBuilder('users'))
+		$result = QueryBuilder::insert('users')
 			->setUTC('created_at')
 			->setValue('privacy_policy_accepted_at', $acceptedPPAt)
-			->returns(['id', 'created_at'])
+			->return('id', 'created_at')
 			->execute();
 		$id = $result['id'];
 		$created_at = $result['created_at'];
@@ -47,7 +46,7 @@ class User {
 		$result = $result[0];
 		
 		//Update timestamp of token:
-		(new UpdateBuilder('sessions'))
+		QueryBuilder::update('sessions')
 			->setUTC('last_usage_at')
 			->whereValue('id', $result['session_id'])
 			->execute();
@@ -61,15 +60,9 @@ class User {
 	}
 	
 	public static function fromIdentifier(string $identifier): null|User {
-		$statement = PDOWrapper::getPDO()->prepare('
-			SELECT *
-			FROM users
-			WHERE identifier = :identifier
-		');
-		$statement->execute([
-			'identifier' => $identifier,
-		]);
-		$result = $statement->fetch();
+		$result = QueryBuilder::select('users')
+			->whereValue('identifier', $identifier)
+			->execute(true);
 		if($result === false) {
 			return null;
 		}
@@ -124,7 +117,7 @@ class User {
 	}
 	
 	public function updateAcceptPPAt(string $acceptedPPAt): void {
-		(new UpdateBuilder('users'))
+		QueryBuilder::update('users')
 			->setValue('privacy_policy_accepted_at', $acceptedPPAt)
 			->whereValue('id', $this->id)
 			->whereValue('privacy_policy_accepted_at', $acceptedPPAt, '<')

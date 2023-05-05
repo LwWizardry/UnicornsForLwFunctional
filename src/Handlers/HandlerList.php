@@ -3,7 +3,6 @@
 namespace MP\Handlers;
 
 use MP\DbEntries\ModDetails;
-use MP\DbEntries\ModSummary;
 use MP\PDOWrapper;
 use MP\ResponseFactory;
 use MP\SlimSetup;

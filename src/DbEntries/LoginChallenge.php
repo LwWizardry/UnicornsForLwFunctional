@@ -4,9 +4,7 @@ namespace MP\DbEntries;
 
 use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\QueryBuilder\Conditions;
-use MP\Helpers\QueryBuilder\DeleteBuilder;
-use MP\Helpers\QueryBuilder\InsertBuilder;
-use MP\Helpers\QueryBuilder\UpdateBuilder;
+use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
@@ -14,20 +12,16 @@ use Throwable;
 
 class LoginChallenge {
 	public static function deleteOutdated(): void {
-		(new DeleteBuilder('login_challenges'))
-			->whereCondition(Conditions::olderThenHours('creation_time', 1))
+		QueryBuilder::delete('login_challenges')
+			->whereCondition(Conditions::olderThanHours('creation_time', 1))
 			->execute();
 	}
 	
 	public static function getChallengeForSession(string $sessionID): null|LoginChallenge {
-		$statement = PDOWrapper::getPDO()->prepare('
-			SELECT *
-			FROM login_challenges
-			WHERE session = ? AND creation_time > UTC_TIMESTAMP() - interval 1 hour
-		');
-		$statement->execute([$sessionID]);
-		$challenge_entry = $statement->fetch();
-		
+		$challenge_entry = QueryBuilder::select('login_challenges')
+			->whereValue('session', $sessionID)
+			->whereCondition(Conditions::olderThanHours('creation_time', 1))
+			->execute(true);
 		if ($challenge_entry === false) {
 			//Did not find the session ID.
 			return null;
@@ -40,7 +34,7 @@ class LoginChallenge {
 	}
 	
 	public static function generateNewChallenge(): LoginChallenge {
-		$challengeID = (new InsertBuilder('login_challenges'))
+		$challengeID = QueryBuilder::insert('login_challenges')
 			->setUTC('creation_time')
 			->return('id')
 			->execute();
@@ -120,7 +114,7 @@ class LoginChallenge {
 	
 	public function updateWithAuthor(LWAuthor $author): void {
 		$this->author = $author;
-		(new UpdateBuilder('login_challenges'))
+		QueryBuilder::update('login_challenges')
 			->setValues([
 				'lw_id' => $this->author->getId(),
 				'lw_name' => $this->author->getUsername(),

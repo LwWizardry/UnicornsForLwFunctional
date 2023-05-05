@@ -7,7 +7,7 @@ use MP\DbEntries\ModSummary;
 use MP\DbEntries\User;
 use MP\ErrorHandling\BadRequestException;
 use MP\Helpers\JsonValidator;
-use MP\Helpers\QueryBuilder\UpdateBuilder;
+use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
 use MP\Helpers\UTF8Helper;
 use MP\PDOWrapper;
 use MP\ResponseFactory;
@@ -61,7 +61,7 @@ class EditModHandler {
 		}
 		//Request may actually be performed - as mod exist and user has permissions for it.
 		
-		$builder = new UpdateBuilder('mods');
+		$builder = QueryBuilder::update('mods');
 		if($newTitle !== null) {
 			$builder->setValue('title', $newTitle);
 		}

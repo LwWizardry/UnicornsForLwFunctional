@@ -2,75 +2,33 @@
 
 namespace MP\Helpers\QueryBuilder;
 
-use Exception;
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\Internal\FieldValueTrait;
+use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
 use MP\PDOWrapper;
 
-class InsertBuilder {
-	private string $table;
-	
-	private int $valueIndex = 0;
-	private array $arguments = [];
-	
-	private array $insertValues = [];
+class InsertBuilder extends QueryBuilder {
+	use FieldValueTrait;
 	
 	private array $returning = [];
 	
 	public function __construct(string $table) {
-		$this->table = $table;
+		parent::__construct($table);
 	}
 	
-	public function setValues(array $values): InsertBuilder {
-		foreach($values as $key => $value) {
-			$this->setValue($key, $value);
-		}
-		return $this;
-	}
-	
-	public function setValue(string $column, null|string $value): InsertBuilder {
-		$key = $this->injectValue($value);
-		$this->insertValues[] = [$column, $key];
-		return $this;
-	}
-	
-	public function setUTC(string $column): InsertBuilder {
-		$this->insertValues[] = [$column, 'UTC_TIMESTAMP()'];
-		return $this;
-	}
-	
-	public function injectValue(null|string $value): string {
-		$key = ':v' . $this->valueIndex++;
-		$this->arguments[$key] = $value;
-		return $key;
-	}
-	
-	public function return(string $column): InsertBuilder {
-		$this->returning[] = $column;
-		return $this;
-	}
-	
-	public function returns(array $columns): InsertBuilder {
+	public function return(string ...$columns): self {
 		foreach($columns as $column) {
-			self::return($column);
+			$this->returning[] = $column;
 		}
 		return $this;
 	}
 	
 	public function execute(): mixed {
 		$query = 'INSERT INTO ' . $this->table . ' (';
-		
-		//Fields:
-		if(empty($this->insertValues)) {
-			throw new Exception('Attempted to create an UPDATE query without updating any fields!');
-		}
-		$query .= join(',', array_map(function ($entry) {
-			return ' ' . $entry[0];
-		}, $this->insertValues));
+		$this->requireFieldValuePairs();
+		$this->generateFieldList($query);
 		$query .= ') VALUES (';
-		//Values:
-		$query .= join(',', array_map(function ($entry) {
-			return ' ' . $entry[1];
-		}, $this->insertValues));
+		$this->generateValueList($query);
 		$query .= ')';
 		
 		//Condition:
@@ -88,7 +46,6 @@ class InsertBuilder {
 		if($isReturning) {
 			if(count($this->returning) === 1) {
 				$result = $statement->fetchColumn();
-				
 			} else {
 				$result = $statement->fetch();
 			}

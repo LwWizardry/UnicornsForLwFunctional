@@ -6,8 +6,7 @@ use MP\DbEntries\LoginChallenge;
 use MP\DbEntries\LWUser;
 use MP\DbEntries\User;
 use MP\ErrorHandling\InternalDescriptiveException;
-use MP\Helpers\QueryBuilder\InsertBuilder;
-use MP\Helpers\QueryBuilder\UpdateBuilder;
+use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use PDOException;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -104,7 +103,7 @@ class LoginManager {
 	
 	private static function loginProcessCreateSession(Response $response, User $userToAuth, LWUser $lwUser): Response {
 		//We got a valid user to auth, create session:
-		$sessionID = (new InsertBuilder('sessions'))
+		$sessionID = QueryBuilder::insert('sessions')
 			->setUTC('issued_at')
 			->setUTC('last_usage_at')
 			->setValue('user', $userToAuth->getDbId())
@@ -146,7 +145,7 @@ class LoginManager {
 		$result = $result[0];
 		
 		//Update timestamp of token:
-		(new UpdateBuilder('sessions'))
+		QueryBuilder::update('sessions')
 			->setUTC('last_usage_at')
 			->whereValue('id', $result['id'])
 			->execute();

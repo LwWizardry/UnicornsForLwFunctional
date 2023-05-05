@@ -2,22 +2,18 @@
 
 namespace MP\DbEntries;
 
-use MP\Helpers\QueryBuilder\InsertBuilder;
+use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\PDOWrapper;
 use PDOException;
 
 class ModSummary {
 	public static function getModFromIdentifier(string $identifier): null|ModSummary {
-		$statement = PDOWrapper::getPDO()->prepare('
-			SELECT title, caption
-			FROM mods
-			WHERE identifier = :identifier
-		');
-		$statement->execute([
-			'identifier' => $identifier,
-		]);
-		$result = $statement->fetch();
+		$result = QueryBuilder::select('mods')
+			->selectColumn('title')
+			->selectColumn('caption')
+			->whereValue('identifier', $identifier)
+			->execute(true);
 		if($result === false) {
 			return null;
 		}
@@ -38,7 +34,7 @@ class ModSummary {
 		//Inject a mod entry into DB, Title/title_normalized/Caption - Warning: Title_sane can be a duplicate!
 		
 		try {
-			$entryID = (new InsertBuilder('mods'))
+			$entryID = QueryBuilder::insert('mods')
 				->setValues([
 					'title' => $title,
 					'title_sane' => $title_sane,
@@ -80,15 +76,10 @@ class ModSummary {
 	 * @return ModSummary[]
 	 */
 	public static function getSummariesForUser(User $user): array {
-		$statement = PDOWrapper::getPDO()->prepare('
-			SELECT identifier, title, caption
-			FROM mods
-			WHERE owner = :owner
-		');
-		$statement->execute([
-			'owner' => $user->getDbId(),
-		]);
-		$result = $statement->fetchAll();
+		$result = QueryBuilder::select('mods')
+			->selectColumns('identifier', 'title', 'caption')
+			->whereValue('owner', $user->getDbId())
+			->execute();
 		
 		$mods = [];
 		foreach($result as $entry) {

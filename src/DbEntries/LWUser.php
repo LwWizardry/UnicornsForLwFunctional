@@ -2,7 +2,7 @@
 
 namespace MP\DbEntries;
 
-use MP\Helpers\QueryBuilder\InsertBuilder;
+use MP\Helpers\QueryBuilder\Internal\QueryBuilder;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
 use PDOException;
@@ -10,7 +10,7 @@ use PDOException;
 class LWUser {
 	public static function tryToCreate(int $userID, LWAuthor $lwAuthor): null|LWUser {
 		try {
-			$id = (new InsertBuilder('lw_users'))
+			$id = QueryBuilder::insert('lw_users')
 				->setValues([
 					'user' => $userID,
 					'identifier' => $lwAuthor->getId(),

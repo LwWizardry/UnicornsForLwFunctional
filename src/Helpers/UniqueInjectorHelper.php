@@ -3,7 +3,6 @@
 namespace MP\Helpers;
 
 use MP\ErrorHandling\InternalDescriptiveException;
-use MP\Helpers\QueryBuilder\UpdateBuilder;
 use MP\PDOWrapper;
 use PDOException;
 
