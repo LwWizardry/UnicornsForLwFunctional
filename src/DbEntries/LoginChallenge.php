@@ -3,7 +3,6 @@
 namespace MP\DbEntries;
 
 use MP\ErrorHandling\InternalDescriptiveException;
-use MP\Helpers\QueryBuilder\Conditions;
 use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\LwApi\LWAuthor;
@@ -13,14 +12,14 @@ use Throwable;
 class LoginChallenge {
 	public static function deleteOutdated(): void {
 		QueryBuilder::delete('login_challenges')
-			->whereCondition(Conditions::olderThanHours('creation_time', 1))
+			->whereOlderThanHours('creation_time', 1)
 			->execute();
 	}
 	
 	public static function getChallengeForSession(string $sessionID): null|LoginChallenge {
 		$challenge_entry = QueryBuilder::select('login_challenges')
 			->whereValue('session', $sessionID)
-			->whereCondition(Conditions::newerThanHours('creation_time', 1))
+			->whereNewerThanHours('creation_time', 1)
 			->execute(true);
 		if ($challenge_entry === false) {
 			//Did not find the session ID.

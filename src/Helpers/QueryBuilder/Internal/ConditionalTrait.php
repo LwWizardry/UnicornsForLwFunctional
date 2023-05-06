@@ -22,10 +22,24 @@ trait ConditionalTrait {
 		return $this;
 	}
 	
+	//Special conditions:
+	
+	public function whereOlderThanHours(string $column, int $hours): self {
+		$this->conditions[] = [$column, '<', 'UTC_TIMESTAMP() - interval ' . $hours . ' hour'];
+		return $this;
+	}
+	
+	public function whereNewerThanHours(string $column, int $hours): self {
+		$this->conditions[] = [$column, '>', 'UTC_TIMESTAMP() - interval ' . $hours . ' hour'];
+		return $this;
+	}
+	
 	public function whereCondition(array $content): self {
 		$this->conditions[] = $content;
 		return $this;
 	}
+	
+	//Generators:
 	
 	protected function requireConditions(): void {
 		if(empty($this->conditions)) {
