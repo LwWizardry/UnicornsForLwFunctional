@@ -1,6 +1,6 @@
 <?php
 
-namespace MP\DbEntries;
+namespace MP\DatabaseTables;
 
 use MP\ErrorHandling\BadRequestException;
 use MP\ErrorHandling\InternalDescriptiveException;
@@ -9,8 +9,8 @@ use MP\Helpers\UniqueInjectorHelper;
 use MP\PDOWrapper;
 use Throwable;
 
-class User {
-	public static function createEmpty(string $acceptedPPAt): null|User {
+class TableUser {
+	public static function createEmpty(string $acceptedPPAt): null|TableUser {
 		$result = QB::insert('users')
 			->setUTC('created_at')
 			->setValue('privacy_policy_accepted_at', $acceptedPPAt)
@@ -26,7 +26,7 @@ class User {
 			throw $e;
 		}
 		
-		return new User($id, $identifier, $created_at, $acceptedPPAt);
+		return new TableUser($id, $identifier, $created_at, $acceptedPPAt);
 	}
 	
 	public static function fromSession($authToken): self {
@@ -47,7 +47,7 @@ class User {
 			->whereValue('id', $result['sessions.id'])
 			->execute();
 		
-		return new User(
+		return new TableUser(
 			$result['users.id'],
 			$result['users.identifier'],
 			$result['users.created_at'],
@@ -55,7 +55,7 @@ class User {
 		);
 	}
 	
-	public static function fromIdentifier(string $identifier): null|User {
+	public static function fromIdentifier(string $identifier): null|TableUser {
 		$result = QB::select('users')
 			->whereValue('identifier', $identifier)
 			->expectOneRow()
@@ -64,7 +64,7 @@ class User {
 			return null;
 		}
 		
-		return new User(
+		return new TableUser(
 			$result['id'],
 			$result['identifier'],
 			$result['created_at'],

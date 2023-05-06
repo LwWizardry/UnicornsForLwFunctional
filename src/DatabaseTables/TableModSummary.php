@@ -1,14 +1,14 @@
 <?php
 
-namespace MP\DbEntries;
+namespace MP\DatabaseTables;
 
 use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\PDOWrapper;
 use PDOException;
 
-class ModSummary {
-	public static function getModFromIdentifier(string $identifier): null|ModSummary {
+class TableModSummary {
+	public static function getModFromIdentifier(string $identifier): null|TableModSummary {
 		$result = QueryBuilder::select('mods')
 			->selectColumn('title', 'caption')
 			->whereValue('identifier', $identifier)
@@ -18,14 +18,14 @@ class ModSummary {
 			return null;
 		}
 		
-		return new ModSummary(
+		return new TableModSummary(
 			$identifier,
 			$result['title'],
 			$result['caption'],
 		);
 	}
 	
-	public static function addNewMod(string $title, string $caption, User $user): null|ModSummary {
+	public static function addNewMod(string $title, string $caption, TableUser $user): null|TableModSummary {
 		//TODO: Improve title validation, remove "'" and other funny characters.
 		// Can probably be expanded on demand.
 		//Sanitise title, by making it lowercase:
@@ -65,7 +65,7 @@ class ModSummary {
 			return null;
 		}
 		
-		return new ModSummary(
+		return new TableModSummary(
 			$identifier,
 			$title,
 			$caption,
@@ -73,9 +73,9 @@ class ModSummary {
 	}
 	
 	/**
-	 * @return ModSummary[]
+	 * @return TableModSummary[]
 	 */
-	public static function getSummariesForUser(User $user): array {
+	public static function getSummariesForUser(TableUser $user): array {
 		$result = QueryBuilder::select('mods')
 			->selectColumn('identifier', 'title', 'caption')
 			->whereValue('owner', $user->getDbId())
@@ -83,7 +83,7 @@ class ModSummary {
 		
 		$mods = [];
 		foreach($result as $entry) {
-			$mods[] = new ModSummary(
+			$mods[] = new TableModSummary(
 				$entry['identifier'],
 				$entry['title'],
 				$entry['caption'],

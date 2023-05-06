@@ -2,9 +2,9 @@
 
 namespace MP\Handlers;
 
-use MP\DbEntries\ModDetails;
-use MP\DbEntries\ModSummary;
-use MP\DbEntries\User;
+use MP\DatabaseTables\TableModDetails;
+use MP\DatabaseTables\TableModSummary;
+use MP\DatabaseTables\TableUser;
 use MP\ErrorHandling\BadRequestException;
 use MP\Helpers\JsonValidator;
 use MP\Helpers\QueryBuilder\QueryBuilder;
@@ -26,7 +26,7 @@ class EditModHandler {
 	public static function editMod(Request $request, Response $response): Response {
 		//Get user making the request:
 		$authToken = SlimSetup::expectAuthorizationHeader($request);
-		$user = User::fromSession($authToken);
+		$user = TableUser::fromSession($authToken);
 		//At this point it is validated, that a logged-in user is making the request.
 		
 		//Parse data for this request:
@@ -51,7 +51,7 @@ class EditModHandler {
 		//At this point, the request is valid.
 		
 		//Fetch mod data, to check what has to be changed:
-		$modDetails = ModDetails::getModFromIdentifier($modIdentifier);
+		$modDetails = TableModDetails::getModFromIdentifier($modIdentifier);
 		if($modDetails === null) {
 			throw new BadRequestException('Mod does not exist.');
 		}
@@ -84,7 +84,7 @@ class EditModHandler {
 	
 	public static function addMod(Request $request, Response $response): Response {
 		$authToken = SlimSetup::expectAuthorizationHeader($request);
-		$user = User::fromSession($authToken);
+		$user = TableUser::fromSession($authToken);
 		//At this point it is validated, that a logged-in user is making the request.
 		
 		//Validate data sent by the client makes sense. (Where data?)
@@ -105,7 +105,7 @@ class EditModHandler {
 		}
 		//At this point the request data is valid.
 		
-		$modSummary = ModSummary::addNewMod($title, $caption, $user);
+		$modSummary = TableModSummary::addNewMod($title, $caption, $user);
 		if($modSummary === null) {
 			return ResponseFactory::writeFailureMessage($response, 'A mod with a title like this already exists!');
 		}
@@ -127,14 +127,14 @@ class EditModHandler {
 			return ResponseFactory::writeBadRequestError($response, 'Missing "identifier" query value in URL.');
 		}
 		//Now the user identifier is known. Try getting a user for it:
-		$user = User::fromIdentifier($identifier);
+		$user = TableUser::fromIdentifier($identifier);
 		if($user === null) {
 			return ResponseFactory::writeJsonData($response, []); //No mod.
-			//return ResponseFactory::writeBadRequestError($response, 'User does not exist.');
+			//return ResponseFactory::writeBadRequestError($response, 'TableUser does not exist.');
 		}
 		//Now the user in question is there...
 		
-		$mods = ModSummary::getSummariesForUser($user);
+		$mods = TableModSummary::getSummariesForUser($user);
 		return ResponseFactory::writeJsonData($response, array_map(
 			function ($mod) {
 				return $mod->asFrontEndJSON();

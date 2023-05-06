@@ -1,13 +1,13 @@
 <?php
 
-namespace MP\DbEntries;
+namespace MP\DatabaseTables;
 
 use MP\Helpers\QueryBuilder\QueryBuilder as QB;
 use MP\Types\LwUserData;
 use MP\Types\UserData;
 
-class ModDetails {
-	public static function getModFromIdentifier(string $identifier): null|ModDetails {
+class TableModDetails {
+	public static function getModFromIdentifier(string $identifier): null|TableModDetails {
 		$result = QB::select('users')
 			->selectColumn('identifier')
 			->joinThat('owner', QB::select('mods')
@@ -26,7 +26,7 @@ class ModDetails {
 			null : new LwUserData($result['lw_users.identifier'], $result['lw_users.name'], $result['lw_users.picture']);
 		$user = new UserData($result['users.identifier'], $lwData);
 		
-		return new ModDetails(
+		return new TableModDetails(
 			$identifier,
 			$result['mods.title'],
 			$result['mods.caption'],

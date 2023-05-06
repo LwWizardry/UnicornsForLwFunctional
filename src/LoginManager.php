@@ -2,9 +2,9 @@
 
 namespace MP;
 
-use MP\DbEntries\LoginChallenge;
-use MP\DbEntries\LWUser;
-use MP\DbEntries\User;
+use MP\DatabaseTables\TableLoginChallenge;
+use MP\DatabaseTables\TableLWUser;
+use MP\DatabaseTables\TableUser;
 use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\QueryBuilder\QueryBuilder as QB;
 use MP\Helpers\UniqueInjectorHelper;
@@ -13,7 +13,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Throwable;
 
 class LoginManager {
-	public static function finalizeLogin(Response $response, LoginChallenge $loginChallenge): Response {
+	public static function finalizeLogin(Response $response, TableLoginChallenge $loginChallenge): Response {
 		$lwAuthor = $loginChallenge->getAuthor();
 		
 		//Create query to lookup
@@ -29,10 +29,10 @@ class LoginManager {
 		
 		if($amount === 0) {
 			//Attempt to create a user:
-			$userToAuth = User::createEmpty($loginChallenge->getCreatedAt());
+			$userToAuth = TableUser::createEmpty($loginChallenge->getCreatedAt());
 			//With user created, try to create link to LW-User - if this fails, rollback the new user.
 			try {
-				$lwUser = LWUser::tryToCreate($userToAuth->getDbId(), $lwAuthor);
+				$lwUser = TableLWUser::tryToCreate($userToAuth->getDbId(), $lwAuthor);
 			} catch (PDOException $e) {
 				$userToAuth->deletePrototype(true); //Clean up!
 				throw $e;
@@ -67,14 +67,14 @@ class LoginManager {
 	}
 	
 	private static function loginProcessFromDBResult(Response $response, array $result, null|string $acceptedPPAt = null): Response {
-		$lwUser = new LWUser(
+		$lwUser = new TableLWUser(
 			$result['lw_users.id'],
 			$result['lw_users.identifier'],
 			$result['lw_users.name'],
 			$result['lw_users.picture'],
 			$result['lw_users.flair'],
 		);
-		$userToAuth = new User(
+		$userToAuth = new TableUser(
 			$result['users.id'],
 			$result['users.identifier'],
 			$result['users.created_at'],
@@ -87,7 +87,7 @@ class LoginManager {
 		return self::loginProcessCreateSession($response, $userToAuth, $lwUser);
 	}
 	
-	private static function loginProcessCreateSession(Response $response, User $userToAuth, LWUser $lwUser): Response {
+	private static function loginProcessCreateSession(Response $response, TableUser $userToAuth, TableLWUser $lwUser): Response {
 		//We got a valid user to auth, create session:
 		$sessionID = QB::insert('sessions')
 			->setUTC('issued_at')

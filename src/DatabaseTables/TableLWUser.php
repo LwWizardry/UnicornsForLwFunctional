@@ -1,14 +1,14 @@
 <?php
 
-namespace MP\DbEntries;
+namespace MP\DatabaseTables;
 
 use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
 use PDOException;
 
-class LWUser {
-	public static function tryToCreate(int $userID, LWAuthor $lwAuthor): null|LWUser {
+class TableLWUser {
+	public static function tryToCreate(int $userID, LWAuthor $lwAuthor): null|TableLWUser {
 		try {
 			$id = QueryBuilder::insert('lw_users')
 				->setValues([
@@ -27,7 +27,7 @@ class LWUser {
 			throw $e;
 		}
 		
-		return new LWUser($id, $lwAuthor->getId(), $lwAuthor->getUsername(), $lwAuthor->getPicture(), $lwAuthor->getFlair());
+		return new TableLWUser($id, $lwAuthor->getId(), $lwAuthor->getUsername(), $lwAuthor->getPicture(), $lwAuthor->getFlair());
 	}
 	
 	private int $id;

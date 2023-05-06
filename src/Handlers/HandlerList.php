@@ -2,7 +2,7 @@
 
 namespace MP\Handlers;
 
-use MP\DbEntries\ModDetails;
+use MP\DatabaseTables\TableModDetails;
 use MP\Helpers\QueryBuilder\QueryBuilder as QB;
 use MP\ResponseFactory;
 use MP\SlimSetup;
@@ -66,7 +66,7 @@ class HandlerList {
 		$identifier = substr($identifier, 4);
 		
 		//Got valid request, query data from DB:
-		$modDetails = ModDetails::getModFromIdentifier($identifier);
+		$modDetails = TableModDetails::getModFromIdentifier($identifier);
 		return ResponseFactory::writeJsonData($response, [
 			'details' => $modDetails?->asFrontEndJSON(),
 		]);

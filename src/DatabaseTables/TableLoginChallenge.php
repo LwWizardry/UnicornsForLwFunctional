@@ -1,6 +1,6 @@
 <?php
 
-namespace MP\DbEntries;
+namespace MP\DatabaseTables;
 
 use MP\ErrorHandling\BadRequestException;
 use MP\ErrorHandling\InternalDescriptiveException;
@@ -10,14 +10,14 @@ use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
 use Throwable;
 
-class LoginChallenge {
+class TableLoginChallenge {
 	public static function deleteOutdated(): void {
 		QueryBuilder::delete('login_challenges')
 			->whereOlderThanHours('creation_time', 1)
 			->execute();
 	}
 	
-	public static function getChallengeForSession(string $sessionID): null|LoginChallenge {
+	public static function getChallengeForSession(string $sessionID): null|TableLoginChallenge {
 		$challenge_entry = QueryBuilder::select('login_challenges')
 			->whereValue('session', $sessionID)
 			->whereNewerThanHours('creation_time', 1)
@@ -31,10 +31,10 @@ class LoginChallenge {
 			throw new InternalDescriptiveException('The login session being used had no challenge set. This should be impossible.');
 		}
 		
-		return new LoginChallenge($challenge_entry['session'], $challenge_entry['challenge'], $challenge_entry);
+		return new TableLoginChallenge($challenge_entry['session'], $challenge_entry['challenge'], $challenge_entry);
 	}
 	
-	public static function generateNewChallenge(): LoginChallenge {
+	public static function generateNewChallenge(): TableLoginChallenge {
 		$challengeID = QueryBuilder::insert('login_challenges')
 			->setUTC('creation_time')
 			->return('id')
@@ -65,7 +65,7 @@ class LoginChallenge {
 			throw $e;
 		}
 		
-		return new LoginChallenge($session, $challenge, null);
+		return new TableLoginChallenge($session, $challenge, null);
 	}
 	
 	//Object:
