@@ -21,8 +21,8 @@ class ModDetails {
 			return null;
 		}
 		
-		$lwData = $result['lw_user.identifier'] === null || $result['lw_user.name'] === null ?
-			null : new LwUserData($result['lw_user.identifier'], $result['lw_user.name'], $result['lw_user.picture']);
+		$lwData = $result['lw_users.identifier'] === null || $result['lw_users.name'] === null ?
+			null : new LwUserData($result['lw_users.identifier'], $result['lw_users.name'], $result['lw_users.picture']);
 		$user = new UserData($result['users.identifier'], $lwData);
 		
 		return new ModDetails(

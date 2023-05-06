@@ -47,10 +47,10 @@ class User {
 			->execute();
 		
 		return new User(
-			$result['user.id'],
-			$result['user.identifier'],
-			$result['user.created_at'],
-			$result['user.privacy_policy_accepted_at'],
+			$result['users.id'],
+			$result['users.identifier'],
+			$result['users.created_at'],
+			$result['users.privacy_policy_accepted_at'],
 		);
 	}
 	

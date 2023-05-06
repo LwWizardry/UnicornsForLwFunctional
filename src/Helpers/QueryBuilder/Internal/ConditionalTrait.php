@@ -51,7 +51,7 @@ trait ConditionalTrait {
 		if($conditions === null) {
 			$conditions = $this->conditions;
 		}
-		if(empty($this->conditions)) {
+		if(empty($conditions)) {
 			return;
 		}
 		$query .= ' WHERE';
