@@ -3,6 +3,7 @@
 namespace MP\Handlers;
 
 use MP\DbEntries\ModDetails;
+use MP\Helpers\QueryBuilder\QueryBuilder as QB;
 use MP\PDOWrapper;
 use MP\ResponseFactory;
 use MP\SlimSetup;
@@ -14,36 +15,35 @@ class HandlerList {
 		LoginHandler::initializeRouteHandlers();
 		EditModHandler::initializeRouteHandlers();
 		
-		SlimSetup::getSlim()->get('/mods', self::addMod(...));
+		SlimSetup::getSlim()->get('/mods', self::listMods(...));
 		SlimSetup::getSlim()->get('/mod-details', self::modDetails(...));
 	}
 	
-	public static function addMod(Request $request, Response $response): Response {
-		$statement = PDOWrapper::getPDO()->prepare('
-				SELECT m.title, m.caption, m.identifier,
-				       u.identifier as u_identifier,
-				       lu.name as lw_name, lu.identifier as lw_id, lu.picture as lw_picture
-				FROM mods m
-				INNER JOIN users u ON m.owner = u.id
-				LEFT JOIN lw_users lu on lu.user = u.id
-			');
-		$statement->execute();
-		$result = $statement->fetchAll();
+	public static function listMods(Request $request, Response $response): Response {
+		$result = QB::select('mods')
+			->selectColumn('title', 'caption', 'identifier')
+			->join(QB::select('users')
+				->selectColumn('identifier')
+				->join(QB::select('lw_users')
+					->selectColumn('name', 'identifier', 'picture'),
+				thatColumn: 'user', optional: true),
+			thisColumn: 'owner')
+			->execute();
 		
 		$modList = [];
 		foreach ($result as $modEntry) {
 			//If the name or the ID is NULL, this entry is invalid and should not exist in the first place.
-			$lw_user = $modEntry['lw_name'] === null || $modEntry['lw_id'] === null ? null : [
-				'id' => $modEntry['lw_id'],
-				'name' => $modEntry['lw_name'],
-				'picture' => $modEntry['lw_picture'],
+			$lw_user = $modEntry['lw_users.name'] === null || $modEntry['lw_users.identifier'] === null ? null : [
+				'id' => $modEntry['lw_users.identifier'],
+				'name' => $modEntry['lw_users.name'],
+				'picture' => $modEntry['lw_users.picture'],
 			];
 			$modList[] = [
-				'identifier' => $modEntry['identifier'],
-				'title' => $modEntry['title'],
-				'caption' => $modEntry['caption'],
+				'identifier' => $modEntry['mods.identifier'],
+				'title' => $modEntry['mods.title'],
+				'caption' => $modEntry['mods.caption'],
 				'owner' => [
-					'identifier' => $modEntry['u_identifier'],
+					'identifier' => $modEntry['users.identifier'],
 					'lw_data' => $lw_user,
 				],
 				'logo' => null,

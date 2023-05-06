@@ -20,7 +20,7 @@ class LoginChallenge {
 	public static function getChallengeForSession(string $sessionID): null|LoginChallenge {
 		$challenge_entry = QueryBuilder::select('login_challenges')
 			->whereValue('session', $sessionID)
-			->whereCondition(Conditions::olderThanHours('creation_time', 1))
+			->whereCondition(Conditions::newerThanHours('creation_time', 1))
 			->execute(true);
 		if ($challenge_entry === false) {
 			//Did not find the session ID.

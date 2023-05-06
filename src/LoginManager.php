@@ -6,7 +6,7 @@ use MP\DbEntries\LoginChallenge;
 use MP\DbEntries\LWUser;
 use MP\DbEntries\User;
 use MP\ErrorHandling\InternalDescriptiveException;
-use MP\Helpers\QueryBuilder\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder as QB;
 use MP\Helpers\UniqueInjectorHelper;
 use PDOException;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -17,23 +17,15 @@ class LoginManager {
 		$lwAuthor = $loginChallenge->getAuthor();
 		
 		//Create query to lookup
-		$statement = PDOWrapper::getPDO()->prepare('
-			SELECT
-				lw_users.id as lw_id,
-				users.id as u_id,
-				lw_users.identifier as lw_identifier,
-				users.identifier as u_identifier,
-				lw_users.*, users.*
-			FROM lw_users
-			INNER JOIN users on lw_users.user = users.id
-			WHERE lw_users.identifier = :identifier OR lw_users.name = :name
-		');
-		
-		$statement->execute([
-			'identifier' => $lwAuthor->getId(),
-			'name' => $lwAuthor->getUsername(),
-		]);
-		$result = $statement->fetchAll();
+		$query = QB::select('lw_users')
+			->selectColumn('id', 'identifier', 'name', 'picture', 'flair')
+			->join(QB::select('users')
+				->selectColumn('id', 'identifier', 'created_at', 'privacy_policy_accepted_at'),
+			thisColumn: 'user')
+			->whereType('OR')
+			->whereValue('identifier', $lwAuthor->getId())
+			->whereValue('name', $lwAuthor->getUsername());
+		$result = $query->execute();
 		$amount = count($result);
 		
 		if($amount === 0) {
@@ -54,25 +46,22 @@ class LoginManager {
 			$userToAuth->deletePrototype(); //Clean up!
 			
 			//Try again to fetch exactly 1 user:
-			$statement->execute([
-				'id' => $lwAuthor->getId(),
-				'name' => $lwAuthor->getUsername(),
-			]);
-			$result = $statement->fetchAll();
+			//TODO: This builds the query a second time, cache that!
+			$result = $query->execute();
 			$amount = count($result);
 			if($amount !== 1) {
 				//Ignoring any special error now.
 				throw new InternalDescriptiveException('Failed to create LWUser, trying to login from two locations? But when trying again, there had been ' . $amount . ' users found.');
 			}
-			return self::loginProcessFromDBResult($response, $result, $loginChallenge->getCreatedAt());
+			return self::loginProcessFromDBResult($response, $result[0], $loginChallenge->getCreatedAt());
 		} else if($amount === 1) {
 			//We got one result, good, this must be our user!
-			return self::loginProcessFromDBResult($response, $result, $loginChallenge->getCreatedAt());
+			return self::loginProcessFromDBResult($response, $result[0], $loginChallenge->getCreatedAt());
 		} else if ($amount === 2) {
 			throw new InternalDescriptiveException('While looking for LWAuthor using ID/Name pair, two results got returned. '
 				. 'This means that the DB is somehow corrupted. This should never happen, here the colliding data: '
-				. $result[0]['lw_identifier'] . ': ' . $result[0]['name'] . ' & '
-				. $result[1]['lw_identifier'] . ': ' . $result[1]['name']
+				. $result[0]['lw_users.identifier'] . ': ' . $result[0]['lw_users.name'] . ' & '
+				. $result[1]['lw_users.identifier'] . ': ' . $result[1]['lw_users.name']
 			);
 		} else {
 			throw new InternalDescriptiveException('While looking for LWAuthor ID/Name match got ' . count($result) . ' results, which should be impossible!');
@@ -80,19 +69,18 @@ class LoginManager {
 	}
 	
 	private static function loginProcessFromDBResult(Response $response, array $result, null|string $acceptedPPAt = null): Response {
-		$result = $result[0];
 		$lwUser = new LWUser(
-			$result['lw_id'],
-			$result['lw_identifier'],
-			$result['name'],
-			$result['picture'],
-			$result['flair'],
+			$result['lw_users.id'],
+			$result['lw_users.identifier'],
+			$result['lw_users.name'],
+			$result['lw_users.picture'],
+			$result['lw_users.flair'],
 		);
 		$userToAuth = new User(
-			$result['u_id'],
-			$result['u_identifier'],
-			$result['created_at'],
-			$result['privacy_policy_accepted_at'],
+			$result['users.id'],
+			$result['users.identifier'],
+			$result['users.created_at'],
+			$result['users.privacy_policy_accepted_at'],
 		);
 		if($acceptedPPAt !== null) {
 			//Update the last agreed privacy policy time:
@@ -103,7 +91,7 @@ class LoginManager {
 	
 	private static function loginProcessCreateSession(Response $response, User $userToAuth, LWUser $lwUser): Response {
 		//We got a valid user to auth, create session:
-		$sessionID = QueryBuilder::insert('sessions')
+		$sessionID = QB::insert('sessions')
 			->setUTC('issued_at')
 			->setUTC('last_usage_at')
 			->setValue('user', $userToAuth->getDbId())
@@ -128,32 +116,30 @@ class LoginManager {
 	}
 	
 	public static function isLoggedIn(Response $response, string $authToken): Response {
-		$statement = PDOWrapper::getPDO()->prepare('
-			SELECT s.id, u.identifier, lu.name, lu.picture
-			FROM sessions AS s
-			INNER JOIN users u ON s.user = u.id
-			INNER JOIN lw_users lu on u.id = lu.user
-			WHERE token = :token
-		');
-		$statement->execute([
-			'token' => $authToken,
-		]);
-		$result = $statement->fetchAll();
-		if(count($result) !== 1) {
+		$result = QB::select('sessions')
+			->selectColumn('id')
+			->join(QB::select('users')
+				->selectColumn('identifier')
+				->join(QB::select('lw_users')
+					->selectColumn('name', 'picture'),
+				thatColumn: 'user'),
+			thisColumn: 'user')
+			->whereValue('token', $authToken)
+			->execute(true);
+		if($result === false) {
 			return ResponseFactory::writeBadRequestError($response, 'Invalid auth token', 401);
 		}
-		$result = $result[0];
 		
 		//Update timestamp of token:
-		QueryBuilder::update('sessions')
+		QB::update('sessions')
 			->setUTC('last_usage_at')
-			->whereValue('id', $result['id'])
+			->whereValue('id', $result['sessions.id'])
 			->execute();
 		
 		return ResponseFactory::writeJsonData($response, [
-			'identifier' => $result['identifier'],
-			'username' => $result['name'],
-			'picture' => $result['picture'],
+			'identifier' => $result['users.identifier'],
+			'username' => $result['lw_users.name'],
+			'picture' => $result['lw_users.picture'],
 		]);
 	}
 }
