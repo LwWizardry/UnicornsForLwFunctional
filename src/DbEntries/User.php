@@ -35,7 +35,8 @@ class User {
 			->whereValue('token', $authToken)
 			->joinThis('user', QB::select('users')
 				->selectColumn('id', 'identifier', 'created_at', 'privacy_policy_accepted_at'))
-			->execute(true);
+			->expectOneRow()
+			->execute();
 		if($result === false) {
 			throw new BadRequestException('Invalid auth token');
 		}
@@ -57,7 +58,8 @@ class User {
 	public static function fromIdentifier(string $identifier): null|User {
 		$result = QB::select('users')
 			->whereValue('identifier', $identifier)
-			->execute(true);
+			->expectOneRow()
+			->execute();
 		if($result === false) {
 			return null;
 		}

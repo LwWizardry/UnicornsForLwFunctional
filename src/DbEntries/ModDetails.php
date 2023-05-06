@@ -16,7 +16,8 @@ class ModDetails {
 			->joinThat('user', QB::select('lw_users')
 				->selectColumn('identifier', 'name', 'picture'),
 			type: 'LEFT')
-			->execute(true);
+			->expectOneRow()
+			->execute();
 		if($result === false) {
 			return null;
 		}

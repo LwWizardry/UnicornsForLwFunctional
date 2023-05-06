@@ -2,9 +2,9 @@
 
 namespace MP\Helpers\QueryBuilder\Queries;
 
+use MP\Helpers\QueryBuilder\Internal\BuiltQuery;
 use MP\Helpers\QueryBuilder\Internal\ConditionalTrait;
 use MP\Helpers\QueryBuilder\QueryBuilder;
-use MP\PDOWrapper;
 
 class DeleteBuilder extends QueryBuilder {
 	use ConditionalTrait;
@@ -13,15 +13,16 @@ class DeleteBuilder extends QueryBuilder {
 		parent::__construct($table, $valuePrefix);
 	}
 	
-	protected function build(): string {
+	public function build(): BuiltQuery {
 		$this->requireConditions();
+		
 		$query = 'DELETE FROM ' . $this->table;
 		$this->generateWhereSection($query);
-		return $query;
+		
+		return new BuiltQuery($query, $this->arguments);
 	}
 	
 	public function execute(): void {
-		$statement = PDOWrapper::getPDO()->prepare($this->getQuery());
-		$statement->execute($this->arguments);
+		$this->build()->execute();
 	}
 }

@@ -2,6 +2,7 @@
 
 namespace MP\Helpers\QueryBuilder;
 
+use MP\Helpers\QueryBuilder\Internal\BuiltQuery;
 use MP\Helpers\QueryBuilder\Queries\DeleteBuilder;
 use MP\Helpers\QueryBuilder\Queries\InsertBuilder;
 use MP\Helpers\QueryBuilder\Queries\SelectBuilder;
@@ -14,30 +15,22 @@ abstract class QueryBuilder {
 	private int $valueIndex = 0;
 	protected array $arguments = [];
 	
-	protected null|string $query = null;
-	
-	protected abstract function build(): string;
-	
-	protected function getQuery(): string {
-		if($this->query === null) {
-			$this->query = $this->build();
-		}
-		return $this->query;
-	}
+	public abstract function build(): BuiltQuery;
 	
 	public function __construct(string $table, string $valuePrefix) {
 		$this->table = $table;
 		$this->valuePrefix = $valuePrefix;
 	}
 	
-	public function injectValue(null|string $value): string {
+	protected function injectValue(null|string $value): string {
 		$key = ':' . $this->valuePrefix . $this->valueIndex++;
 		$this->arguments[$key] = $value;
 		return $key;
 	}
 	
-	public function overwriteArg(string $key, null|string $value): void {
-		$this->arguments[$key] = $value;
+	public function injectValueAs(null|string $value, string $name): self {
+		$this->arguments[':' . $name] = $value;
+		return $this;
 	}
 	
 	//Static constructors:

@@ -3,17 +3,23 @@
 namespace MP\Helpers\QueryBuilder\Queries;
 
 use Exception;
+use MP\Helpers\QueryBuilder\Internal\BuiltQuery;
 use MP\Helpers\QueryBuilder\Internal\ConditionalTrait;
 use MP\Helpers\QueryBuilder\QueryBuilder;
-use MP\PDOWrapper;
+use PDOStatement;
 
 class SelectBuilder extends QueryBuilder {
 	use ConditionalTrait;
 	
-	private bool $onlyOneColumn = false;
+	private bool $expectOneRow = false;
 	
 	public function __construct(string $table, string $valuePrefix) {
 		parent::__construct($table, $valuePrefix);
+	}
+	
+	public function expectOneRow(): self {
+		$this->expectOneRow = true;
+		return $this;
 	}
 	
 	//### SELECT ###
@@ -80,7 +86,7 @@ class SelectBuilder extends QueryBuilder {
 		return array_merge([$this], ...array_map(fn($tableBuilder) => $tableBuilder->getBuilders(), $this->tableBuilders));
 	}
 	
-	protected function build(): string {
+	public function build(): BuiltQuery {
 		$allTableBuilders = $this->getBuilders();
 		$isMultipleTables = count($allTableBuilders) > 1;
 		
@@ -114,29 +120,26 @@ class SelectBuilder extends QueryBuilder {
 			$this->generateWhereSection($query);
 		}
 		
-		//TBI: This is a side effect function. But probably an okay-ish solution - for now '23 :P.
-		if(count($allSelectors) === 1 && $allSelectors[0] !== '*') {
-			$this->onlyOneColumn = true;
-		}
-		
-		return $query;
+		$allArguments = array_merge(...array_map(fn($e) => $e->arguments, $allTableBuilders));
+		$expectOneRow = $this->expectOneRow;
+		$onlyOneColumn = count($allSelectors) === 1 && $allSelectors[0] !== '*';
+		return new BuiltQuery($query, $allArguments, function($statement) use($expectOneRow, $onlyOneColumn) {
+			if($expectOneRow) {
+				if($onlyOneColumn) {
+					//FALSE or MIXED (careful when returning boolean!):
+					return $statement->fetchColumn();
+				} else {
+					//FALSE or MIXED (careful when returning boolean!):
+					return $statement->fetch();
+				}
+			} else {
+				//FALSE or ARRAY of rows:
+				return $statement->fetchAll();
+			}
+		});
 	}
 	
-	public function execute(bool $expectOneRow = false): mixed {
-		$statement = PDOWrapper::getPDO()->prepare($this->getQuery());
-		$statement->execute($this->arguments);
-		
-		if($expectOneRow) {
-			if($this->onlyOneColumn) {
-				//FALSE or MIXED (careful when returning boolean!):
-				return $statement->fetchColumn();
-			} else {
-				//FALSE or MIXED (careful when returning boolean!):
-				return $statement->fetch();
-			}
-		} else {
-			//FALSE or ARRAY of rows:
-			return $statement->fetchAll();
-		}
+	public function execute(): mixed {
+		return $this->build()->execute();
 	}
 }

@@ -121,7 +121,8 @@ class LoginManager {
 				->whereValue('token', $authToken))
 			->joinThat('user', QB::select('lw_users')
 				->selectColumn('name', 'picture'))
-			->execute(true);
+			->expectOneRow()
+			->execute();
 		if($result === false) {
 			return ResponseFactory::writeBadRequestError($response, 'Invalid auth token', 401);
 		}

@@ -2,6 +2,7 @@
 
 namespace MP\DbEntries;
 
+use MP\ErrorHandling\BadRequestException;
 use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\Helpers\UniqueInjectorHelper;
@@ -20,7 +21,8 @@ class LoginChallenge {
 		$challenge_entry = QueryBuilder::select('login_challenges')
 			->whereValue('session', $sessionID)
 			->whereNewerThanHours('creation_time', 1)
-			->execute(true);
+			->expectOneRow()
+			->execute();
 		if ($challenge_entry === false) {
 			//Did not find the session ID.
 			return null;

@@ -3,9 +3,10 @@
 namespace MP\Helpers\QueryBuilder\Queries;
 
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\Internal\BuiltQuery;
 use MP\Helpers\QueryBuilder\Internal\FieldValueTrait;
 use MP\Helpers\QueryBuilder\QueryBuilder;
-use MP\PDOWrapper;
+use PDOStatement;
 
 class InsertBuilder extends QueryBuilder {
 	use FieldValueTrait;
@@ -23,41 +24,43 @@ class InsertBuilder extends QueryBuilder {
 		return $this;
 	}
 	
-	protected function build(): string {
+	public function build(): BuiltQuery {
 		$this->requireFieldValuePairs();
+		
 		$query = 'INSERT INTO ' . $this->table . ' (';
 		$this->generateFieldList($query);
 		$query .= ') VALUES (';
 		$this->generateValueList($query);
 		$query .= ')';
-		if(!empty($this->returning)) {
+		$isReturning = !empty($this->returning);
+		if($isReturning) {
 			$query .= ' RETURNING';
 			$query .= join(',', array_map(function ($entry) {
 				return ' ' . $entry;
 			}, $this->returning));
 		}
 		
-		return $query;
+		$isReturningOneColumn = count($this->returning) === 1;
+		return new BuiltQuery($query, $this->arguments, function($statement) use ($isReturning, $isReturningOneColumn) {
+			//Return values (if needed):
+			if(!$isReturning) {
+				//No return value expected, just default to null.
+				return null;
+			}
+			
+			if($isReturningOneColumn) {
+				$result = $statement->fetchColumn();
+			} else {
+				$result = $statement->fetch();
+			}
+			if($result === false) {
+				throw new InternalDescriptiveException('Fetch failed (false), while trying to insert a new thing.');
+			}
+			return $result;
+		});
 	}
 	
 	public function execute(): mixed {
-		$statement = PDOWrapper::getPDO()->prepare($this->getQuery());
-		$statement->execute($this->arguments);
-		
-		//Return values (if needed):
-		if(empty($this->returning)) {
-			//No return value expected, just default to null.
-			return null;
-		}
-		
-		if(count($this->returning) === 1) {
-			$result = $statement->fetchColumn();
-		} else {
-			$result = $statement->fetch();
-		}
-		if($result === false) {
-			throw new InternalDescriptiveException('Fetch failed (false), while trying to insert a new thing.');
-		}
-		return $result;
+		return $this->build()->execute();
 	}
 }

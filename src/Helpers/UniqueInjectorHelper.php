@@ -43,15 +43,16 @@ class UniqueInjectorHelper {
 		callable $generator,
 	): string {
 		$query = QueryBuilder::update($table)
-			->whereValue('id', $id);
-		//Register named placeholder manually, so that its value can be replaced manually for each attempt.
-		$valueKey = $query->injectValue(null);
-		$query->setValueRaw($column, $valueKey);
+			->whereValue('id', $id)
+			//Register named placeholder manually, so that its value can be replaced manually for each attempt:
+			->injectValueAs(null, 'value')
+			->setValueRaw($column, ':value')
+			->build();
 		
-		$attemptInjection = function() use($query, $valueKey, $generator): null|string {
+		$attemptInjection = function() use($query, $generator): null|string {
 			try {
 				$uniqueValue = $generator();
-				$query->overwriteArg($valueKey, $uniqueValue); //Initialize/Update the new unique key to insert
+				$query->overwriteArg('value', $uniqueValue); //Initialize/Update the new unique key to insert
 				$query->execute();
 				return $uniqueValue;
 			} catch (PDOException $e) {

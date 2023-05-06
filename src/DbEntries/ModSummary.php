@@ -12,7 +12,8 @@ class ModSummary {
 		$result = QueryBuilder::select('mods')
 			->selectColumn('title', 'caption')
 			->whereValue('identifier', $identifier)
-			->execute(true);
+			->expectOneRow()
+			->execute();
 		if($result === false) {
 			return null;
 		}
