@@ -36,6 +36,10 @@ abstract class QueryBuilder {
 		return $key;
 	}
 	
+	public function overwriteArg(string $key, null|string $value): void {
+		$this->arguments[$key] = $value;
+	}
+	
 	//Static constructors:
 	
 	public static function select(string $table, string $valuePrefix = 'v'): SelectBuilder {

@@ -3,6 +3,7 @@
 namespace MP\Helpers;
 
 use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\QueryBuilder;
 use MP\PDOWrapper;
 use PDOException;
 
@@ -41,21 +42,17 @@ class UniqueInjectorHelper {
 		string $column,
 		callable $generator,
 	): string {
-		//TBI: is it worth modifying the query builder to be able to be used here?
-		$statement = PDOWrapper::getPDO()->prepare('
-			UPDATE ' . $table .'
-			SET ' . $column . ' = :value
-			WHERE id = :id
-		');
-		$arguments = [
-			'id' => $id,
-		];
+		$query = QueryBuilder::update($table)
+			->whereValue('id', $id);
+		//Register named placeholder manually, so that its value can be replaced manually for each attempt.
+		$valueKey = $query->injectValue(null);
+		$query->setValueRaw($column, $valueKey);
 		
-		$attemptInjection = function() use($statement, $column, &$arguments, $generator): null|string {
+		$attemptInjection = function() use($query, $valueKey, $generator): null|string {
 			try {
 				$uniqueValue = $generator();
-				$arguments['value'] = $uniqueValue; //Initialize/Update the new unique key to insert
-				$statement->execute($arguments);
+				$query->overwriteArg($valueKey, $uniqueValue); //Initialize/Update the new unique key to insert
+				$query->execute();
 				return $uniqueValue;
 			} catch (PDOException $e) {
 				//Validate, that the expected error happens (unique key constrain issue):

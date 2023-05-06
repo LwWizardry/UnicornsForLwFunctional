@@ -7,10 +7,14 @@ use Exception;
 trait FieldValueTrait {
 	private array $fieldValues = [];
 	
+	public function setValueRaw(string $column, null|string $value): self {
+		$this->fieldValues[] = [$column, $value];
+		return $this;
+	}
+	
 	public function setValue(string $column, null|string $value): self {
 		$key = $this->injectValue($value);
-		$this->fieldValues[] = [$column, $key];
-		return $this;
+		return $this->setValueRaw($column, $key);
 	}
 	
 	public function setValues(array $values): self {
@@ -21,8 +25,7 @@ trait FieldValueTrait {
 	}
 	
 	public function setUTC(string $column): self {
-		$this->fieldValues[] = [$column, 'UTC_TIMESTAMP()'];
-		return $this;
+		return $this->setValueRaw($column, 'UTC_TIMESTAMP()');
 	}
 	
 	protected function requireFieldValuePairs(): void {
