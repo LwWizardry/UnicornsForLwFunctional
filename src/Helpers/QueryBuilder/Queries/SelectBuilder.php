@@ -10,6 +10,8 @@ use MP\PDOWrapper;
 class SelectBuilder extends QueryBuilder {
 	use ConditionalTrait;
 	
+	private bool $onlyOneColumn = false;
+	
 	public function __construct(string $table, string $valuePrefix) {
 		parent::__construct($table, $valuePrefix);
 	}
@@ -78,7 +80,7 @@ class SelectBuilder extends QueryBuilder {
 		return array_merge([$this], ...array_map(fn($tableBuilder) => $tableBuilder->getBuilders(), $this->tableBuilders));
 	}
 	
-	public function execute(bool $expectOneRow = false): mixed {
+	protected function build(): string {
 		$allTableBuilders = $this->getBuilders();
 		$isMultipleTables = count($allTableBuilders) > 1;
 		
@@ -112,11 +114,20 @@ class SelectBuilder extends QueryBuilder {
 			$this->generateWhereSection($query);
 		}
 		
-		$statement = PDOWrapper::getPDO()->prepare($query);
+		//TBI: This is a side effect function. But probably an okay-ish solution - for now '23 :P.
+		if(count($allSelectors) === 1 && $allSelectors[0] !== '*') {
+			$this->onlyOneColumn = true;
+		}
+		
+		return $query;
+	}
+	
+	public function execute(bool $expectOneRow = false): mixed {
+		$statement = PDOWrapper::getPDO()->prepare($this->getQuery());
 		$statement->execute($this->arguments);
 		
 		if($expectOneRow) {
-			if(count($allSelectors) === 1 && $allSelectors[0] !== '*') {
+			if($this->onlyOneColumn) {
 				//FALSE or MIXED (careful when returning boolean!):
 				return $statement->fetchColumn();
 			} else {

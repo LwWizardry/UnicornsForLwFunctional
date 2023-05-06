@@ -13,13 +13,15 @@ class DeleteBuilder extends QueryBuilder {
 		parent::__construct($table, $valuePrefix);
 	}
 	
-	public function execute(): void {
-		$query = 'DELETE FROM ' . $this->table;
-		//Condition:
+	protected function build(): string {
 		$this->requireConditions();
+		$query = 'DELETE FROM ' . $this->table;
 		$this->generateWhereSection($query);
-		
-		$statement = PDOWrapper::getPDO()->prepare($query);
+		return $query;
+	}
+	
+	public function execute(): void {
+		$statement = PDOWrapper::getPDO()->prepare($this->getQuery());
 		$statement->execute($this->arguments);
 	}
 }

@@ -14,6 +14,17 @@ abstract class QueryBuilder {
 	private int $valueIndex = 0;
 	protected array $arguments = [];
 	
+	protected null|string $query = null;
+	
+	protected abstract function build(): string;
+	
+	protected function getQuery(): string {
+		if($this->query === null) {
+			$this->query = $this->build();
+		}
+		return $this->query;
+	}
+	
 	public function __construct(string $table, string $valuePrefix) {
 		$this->table = $table;
 		$this->valuePrefix = $valuePrefix;

@@ -45,7 +45,6 @@ class LoginManager {
 			$userToAuth->deletePrototype(); //Clean up!
 			
 			//Try again to fetch exactly 1 user:
-			//TODO: This builds the query a second time, cache that!
 			$result = $query->execute();
 			$amount = count($result);
 			if($amount !== 1) {

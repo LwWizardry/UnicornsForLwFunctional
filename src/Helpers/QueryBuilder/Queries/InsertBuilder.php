@@ -23,39 +23,41 @@ class InsertBuilder extends QueryBuilder {
 		return $this;
 	}
 	
-	public function execute(): mixed {
-		$query = 'INSERT INTO ' . $this->table . ' (';
+	protected function build(): string {
 		$this->requireFieldValuePairs();
+		$query = 'INSERT INTO ' . $this->table . ' (';
 		$this->generateFieldList($query);
 		$query .= ') VALUES (';
 		$this->generateValueList($query);
 		$query .= ')';
-		
-		//Condition:
-		$isReturning = !empty($this->returning);
-		if($isReturning) {
+		if(!empty($this->returning)) {
 			$query .= ' RETURNING';
 			$query .= join(',', array_map(function ($entry) {
 				return ' ' . $entry;
 			}, $this->returning));
 		}
 		
-		$statement = PDOWrapper::getPDO()->prepare($query);
+		return $query;
+	}
+	
+	public function execute(): mixed {
+		$statement = PDOWrapper::getPDO()->prepare($this->getQuery());
 		$statement->execute($this->arguments);
+		
 		//Return values (if needed):
-		if($isReturning) {
-			if(count($this->returning) === 1) {
-				$result = $statement->fetchColumn();
-			} else {
-				$result = $statement->fetch();
-			}
-			if($result === false) {
-				throw new InternalDescriptiveException('Fetch failed (false), while trying to insert a new thing.');
-			}
-			return $result;
-		} else {
+		if(empty($this->returning)) {
 			//No return value expected, just default to null.
 			return null;
 		}
+		
+		if(count($this->returning) === 1) {
+			$result = $statement->fetchColumn();
+		} else {
+			$result = $statement->fetch();
+		}
+		if($result === false) {
+			throw new InternalDescriptiveException('Fetch failed (false), while trying to insert a new thing.');
+		}
+		return $result;
 	}
 }

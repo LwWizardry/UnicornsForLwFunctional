@@ -15,16 +15,17 @@ class UpdateBuilder extends QueryBuilder {
 		parent::__construct($table, $valuePrefix);
 	}
 	
-	public function execute(): void {
-		$query = 'UPDATE ' . $this->table . ' SET ';
-		//Values:
+	protected function build(): string {
 		$this->requireFieldValuePairs();
-		$this->generateAssignment($query);
-		//Condition:
 		$this->requireConditions();
+		$query = 'UPDATE ' . $this->table . ' SET ';
+		$this->generateAssignment($query);
 		$this->generateWhereSection($query);
-		
-		$statement = PDOWrapper::getPDO()->prepare($query);
+		return $query;
+	}
+	
+	public function execute(): void {
+		$statement = PDOWrapper::getPDO()->prepare($this->getQuery());
 		$statement->execute($this->arguments);
 	}
 }
