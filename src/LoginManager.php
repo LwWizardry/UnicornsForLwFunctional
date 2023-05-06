@@ -19,9 +19,8 @@ class LoginManager {
 		//Create query to lookup
 		$query = QB::select('lw_users')
 			->selectColumn('id', 'identifier', 'name', 'picture', 'flair')
-			->join(QB::select('users')
-				->selectColumn('id', 'identifier', 'created_at', 'privacy_policy_accepted_at'),
-			thisColumn: 'user')
+			->joinThis('user', QB::select('users')
+				->selectColumn('id', 'identifier', 'created_at', 'privacy_policy_accepted_at'))
 			->whereType('OR')
 			->whereValue('identifier', $lwAuthor->getId())
 			->whereValue('name', $lwAuthor->getUsername());
@@ -118,13 +117,11 @@ class LoginManager {
 	public static function isLoggedIn(Response $response, string $authToken): Response {
 		$result = QB::select('users')
 			->selectColumn('identifier')
-			->join(QB::select('sessions')
+			->joinThat('user', QB::select('sessions')
 				->selectColumn('id')
-				->whereValue('token', $authToken),
-			thatColumn: 'user')
-			->join(QB::select('lw_users')
-				->selectColumn('name', 'picture'),
-			thatColumn: 'user')
+				->whereValue('token', $authToken))
+			->joinThat('user', QB::select('lw_users')
+				->selectColumn('name', 'picture'))
 			->execute(true);
 		if($result === false) {
 			return ResponseFactory::writeBadRequestError($response, 'Invalid auth token', 401);

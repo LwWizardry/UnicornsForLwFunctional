@@ -33,9 +33,8 @@ class User {
 		$result = QB::select('sessions')
 			->selectColumn('id')
 			->whereValue('token', $authToken)
-			->join(QB::select('users')
-				->selectColumn('id', 'identifier', 'created_at', 'privacy_policy_accepted_at'),
-			thisColumn: 'user')
+			->joinThis('user', QB::select('users')
+				->selectColumn('id', 'identifier', 'created_at', 'privacy_policy_accepted_at'))
 			->execute(true);
 		if($result === false) {
 			throw new BadRequestException('Invalid auth token');

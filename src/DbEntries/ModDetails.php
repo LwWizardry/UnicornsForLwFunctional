@@ -10,13 +10,12 @@ class ModDetails {
 	public static function getModFromIdentifier(string $identifier): null|ModDetails {
 		$result = QB::select('users')
 			->selectColumn('identifier')
-			->join(QB::select('mods')
+			->joinThat('owner', QB::select('mods')
 				->selectColumn('title', 'caption')
-				->whereValue('identifier', $identifier),
-			thatColumn: 'owner')
-			->join(QB::select('lw_users')
+				->whereValue('identifier', $identifier))
+			->joinThat('user', QB::select('lw_users')
 				->selectColumn('identifier', 'name', 'picture'),
-			thatColumn: 'user', optional: true)
+			type: 'LEFT')
 			->execute(true);
 		if($result === false) {
 			return null;

@@ -44,11 +44,19 @@ class SelectBuilder extends QueryBuilder {
 	private array $tableBuilders = [];
 	private array $joins = [];
 	
-	public function join(SelectBuilder $tableBuilder, string $thisColumn = 'id', string $thatColumn = 'id', bool $optional = false): self {
+	public function joinThis(string $column, SelectBuilder $tableBuilder, string $type = 'INNER'): self {
+		return $this->join($tableBuilder, thisColumn: $column, type: $type);
+	}
+	
+	public function joinThat(string $column, SelectBuilder $tableBuilder, string $type = 'INNER'): self {
+		return $this->join($tableBuilder, thatColumn: $column, type: $type);
+	}
+	
+	public function join(SelectBuilder $tableBuilder, string $thisColumn = 'id', string $thatColumn = 'id', string $type = 'INNER'): self {
 		$this->tableBuilders[] = $tableBuilder;
 		$this->joins[] = [
-			//Type of join: INNER/LEFT:
-			$optional ? 'LEFT' : 'INNER',
+			//Type of join: INNER/LEFT(/RIGHT):
+			$type,
 			//Table to join:
 			$tableBuilder->table,
 			//This Column:

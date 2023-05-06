@@ -21,12 +21,11 @@ class HandlerList {
 	public static function listMods(Request $request, Response $response): Response {
 		$result = QB::select('users')
 			->selectColumn('identifier')
-			->join(QB::select('mods')
-				->selectColumn('title', 'caption', 'identifier'),
-			thisColumn: 'owner')
-			->join(QB::select('lw_users')
+			->joinThat('owner', QB::select('mods')
+				->selectColumn('title', 'caption', 'identifier'))
+			->joinThat('user', QB::select('lw_users')
 				->selectColumn('name', 'identifier', 'picture'),
-			thatColumn: 'user', optional: true)
+			type: 'LEFT')
 			->execute();
 		
 		$modList = [];
