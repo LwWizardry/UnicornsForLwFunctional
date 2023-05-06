@@ -4,14 +4,14 @@ namespace MP\DbEntries;
 
 use MP\ErrorHandling\BadRequestException;
 use MP\ErrorHandling\InternalDescriptiveException;
-use MP\Helpers\QueryBuilder\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder as QB;
 use MP\Helpers\UniqueInjectorHelper;
 use MP\PDOWrapper;
 use Throwable;
 
 class User {
 	public static function createEmpty(string $acceptedPPAt): null|User {
-		$result = QueryBuilder::insert('users')
+		$result = QB::insert('users')
 			->setUTC('created_at')
 			->setValue('privacy_policy_accepted_at', $acceptedPPAt)
 			->return('id', 'created_at')
@@ -30,37 +30,33 @@ class User {
 	}
 	
 	public static function fromSession($authToken): self {
-		$statement = PDOWrapper::getPDO()->prepare('
-			SELECT s.id AS session_id, u.id AS user_id, u.identifier, u.created_at, u.privacy_policy_accepted_at
-			FROM sessions AS s
-			INNER JOIN users u ON s.user = u.id
-			WHERE token = :token
-		');
-		$statement->execute([
-			'token' => $authToken,
-		]);
-		$result = $statement->fetchAll();
-		if(count($result) !== 1) {
+		$result = QB::select('sessions')
+			->selectColumn('id')
+			->whereValue('token', $authToken)
+			->join(QB::select('users')
+				->selectColumn('id', 'identifier', 'created_at', 'privacy_policy_accepted_at'),
+			thisColumn: 'user')
+			->execute(true);
+		if($result === false) {
 			throw new BadRequestException('Invalid auth token');
 		}
-		$result = $result[0];
 		
 		//Update timestamp of token:
-		QueryBuilder::update('sessions')
+		QB::update('sessions')
 			->setUTC('last_usage_at')
-			->whereValue('id', $result['session_id'])
+			->whereValue('id', $result['sessions.id'])
 			->execute();
 		
 		return new User(
-			$result['user_id'],
-			$result['identifier'],
-			$result['created_at'],
-			$result['privacy_policy_accepted_at'],
+			$result['user.id'],
+			$result['user.identifier'],
+			$result['user.created_at'],
+			$result['user.privacy_policy_accepted_at'],
 		);
 	}
 	
 	public static function fromIdentifier(string $identifier): null|User {
-		$result = QueryBuilder::select('users')
+		$result = QB::select('users')
 			->whereValue('identifier', $identifier)
 			->execute(true);
 		if($result === false) {
@@ -117,7 +113,7 @@ class User {
 	}
 	
 	public function updateAcceptPPAt(string $acceptedPPAt): void {
-		QueryBuilder::update('users')
+		QB::update('users')
 			->setValue('privacy_policy_accepted_at', $acceptedPPAt)
 			->whereValue('id', $this->id)
 			->whereValue('privacy_policy_accepted_at', $acceptedPPAt, '<')

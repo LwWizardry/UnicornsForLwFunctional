@@ -2,40 +2,34 @@
 
 namespace MP\DbEntries;
 
-use MP\PDOWrapper;
+use MP\Helpers\QueryBuilder\QueryBuilder as QB;
 use MP\Types\LwUserData;
 use MP\Types\UserData;
 
 class ModDetails {
 	public static function getModFromIdentifier(string $identifier): null|ModDetails {
-		$statement = PDOWrapper::getPDO()->prepare('
-				SELECT m.title, m.caption,
-					u.identifier as u_identifier,
-					
-					lu.identifier as lw_id,
-					lu.name as lw_name,
-					lu.picture as lw_picture
-				FROM mods m
-				INNER JOIN users u on m.owner = u.id
-				LEFT JOIN lw_users lu on u.id = lu.user
-				WHERE m.identifier = :identifier
-			');
-		$statement->execute([
-			'identifier' => $identifier,
-		]);
-		$result = $statement->fetch();
+		$result = QB::select('users')
+			->selectColumn('identifier')
+			->join(QB::select('mods')
+				->selectColumn('title', 'caption')
+				->whereValue('identifier', $identifier),
+			thatColumn: 'owner')
+			->join(QB::select('lw_users')
+				->selectColumn('identifier', 'name', 'picture'),
+			thatColumn: 'user', optional: true)
+			->execute(true);
 		if($result === false) {
 			return null;
 		}
 		
-		$lwData = $result['lw_id'] === null || $result['lw_name'] === null ?
-			null : new LwUserData($result['lw_id'], $result['lw_name'], $result['lw_picture']);
-		$user = new UserData($result['u_identifier'], $lwData);
+		$lwData = $result['lw_user.identifier'] === null || $result['lw_user.name'] === null ?
+			null : new LwUserData($result['lw_user.identifier'], $result['lw_user.name'], $result['lw_user.picture']);
+		$user = new UserData($result['users.identifier'], $lwData);
 		
 		return new ModDetails(
 			$identifier,
-			$result['title'],
-			$result['caption'],
+			$result['mods.title'],
+			$result['mods.caption'],
 			$user,
 		);
 	}

@@ -4,7 +4,6 @@ namespace MP\Handlers;
 
 use MP\DbEntries\ModDetails;
 use MP\Helpers\QueryBuilder\QueryBuilder as QB;
-use MP\PDOWrapper;
 use MP\ResponseFactory;
 use MP\SlimSetup;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -20,14 +19,14 @@ class HandlerList {
 	}
 	
 	public static function listMods(Request $request, Response $response): Response {
-		$result = QB::select('mods')
-			->selectColumn('title', 'caption', 'identifier')
-			->join(QB::select('users')
-				->selectColumn('identifier')
-				->join(QB::select('lw_users')
-					->selectColumn('name', 'identifier', 'picture'),
-				thatColumn: 'user', optional: true),
+		$result = QB::select('users')
+			->selectColumn('identifier')
+			->join(QB::select('mods')
+				->selectColumn('title', 'caption', 'identifier'),
 			thisColumn: 'owner')
+			->join(QB::select('lw_users')
+				->selectColumn('name', 'identifier', 'picture'),
+			thatColumn: 'user', optional: true)
 			->execute();
 		
 		$modList = [];
