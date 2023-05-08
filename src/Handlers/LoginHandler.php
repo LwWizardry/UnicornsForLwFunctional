@@ -2,7 +2,7 @@
 
 namespace MP\Handlers;
 
-use MP\DbEntries\LoginChallenge;
+use MP\DatabaseTables\TableLoginChallenge;
 use MP\LoginManager;
 use MP\LwApi\LWBackend;
 use MP\ResponseFactory;
@@ -35,11 +35,11 @@ class LoginHandler {
 		}
 		
 		//As initial step, remove all challenge entries that have expired:
-		LoginChallenge::deleteOutdated();
+		TableLoginChallenge::deleteOutdated();
 		
 		//TBI: Add challenge test against existing comments,
 		// to ensure that the challenge won't already be fulfilled.
-		$loginChallenge = LoginChallenge::generateNewChallenge();
+		$loginChallenge = TableLoginChallenge::generateNewChallenge();
 		return ResponseFactory::writeJsonData($response, [
 			'challenge' => $loginChallenge->getChallenge(),
 			'session' => $loginChallenge->getSession(),
@@ -48,7 +48,7 @@ class LoginHandler {
 	
 	private static function onCommentCreated(Request $request, Response $response): Response {
 		$sessionID = SlimSetup::expectAuthorizationHeader($request);
-		$loginChallenge = LoginChallenge::getChallengeForSession($sessionID);
+		$loginChallenge = TableLoginChallenge::getChallengeForSession($sessionID);
 		if ($loginChallenge === null) {
 			//Could not find the session ID in DB (or its entry is corrupted) => Let client acquire a new one.
 			return ResponseFactory::writeFailureMessageActions($response, 'Unknown or expired login session ID', [
@@ -126,7 +126,7 @@ class LoginHandler {
 	
 	private static function onCommentsDeleted(Request $request, Response $response): Response {
 		$sessionID = SlimSetup::expectAuthorizationHeader($request);
-		$loginChallenge = LoginChallenge::getChallengeForSession($sessionID);
+		$loginChallenge = TableLoginChallenge::getChallengeForSession($sessionID);
 		if ($loginChallenge === null) {
 			//Could not find the session ID in DB (or its entry is corrupted) => Let client acquire a new one.
 			return ResponseFactory::writeFailureMessageActions($response, 'Unknown or expired login session ID', [

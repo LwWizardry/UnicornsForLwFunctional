@@ -6,7 +6,6 @@ use MP\ErrorHandling\InternalDescriptiveException;
 use MP\Helpers\QueryBuilder\Internal\BuiltQuery;
 use MP\Helpers\QueryBuilder\Internal\FieldValueTrait;
 use MP\Helpers\QueryBuilder\QueryBuilder;
-use PDOStatement;
 
 class InsertBuilder extends QueryBuilder {
 	use FieldValueTrait;

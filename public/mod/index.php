@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-use MP\DbEntries\ModSummary;
+use MP\DatabaseTables\TableModSummary;
 use MP\SlimSetup;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -42,7 +42,7 @@ SlimSetup::getSlim()->get('/mod/{name}[/]', function (Request $request, Response
 		$url_title = 'mod-' . $mod_name;
 		
 		try {
-			$modSummary = ModSummary::getModFromIdentifier($identifier);
+			$modSummary = TableModSummary::getModFromIdentifier($identifier);
 			//TODO: Or if not visible.
 			if($modSummary === null) {
 				$title = 'Not existing mod';

@@ -4,15 +4,15 @@ namespace MP\Helpers\QueryBuilder\Internal;
 
 use Closure;
 use MP\PDOWrapper;
+use PDOStatement;
 
 class BuiltQuery {
-	
-	private string $query;
+	private PDOStatement $statement;
 	private array $arguments;
 	private null|Closure $executable;
 	
 	public function __construct(string $query, array $arguments, null|Closure $executable = null) {
-		$this->query = $query;
+		$this->statement = PDOWrapper::getPDO()->prepare($query);
 		$this->arguments = $arguments;
 		$this->executable = $executable;
 	}
@@ -22,8 +22,7 @@ class BuiltQuery {
 	}
 	
 	public function execute(): mixed {
-		$statement = PDOWrapper::getPDO()->prepare($this->query);
-		$statement->execute($this->arguments);
-		return $this->executable?->call($this, $statement);
+		$this->statement->execute($this->arguments);
+		return $this->executable?->call($this, $this->statement);
 	}
 }
