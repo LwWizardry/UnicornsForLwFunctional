@@ -2,13 +2,17 @@
 
 namespace MP\DatabaseTables;
 
+use Exception;
+use MP\DatabaseTables\Generic\Fetchable;
+use MP\Helpers\QueryBuilder\Queries\SelectBuilder;
 use MP\Helpers\QueryBuilder\QueryBuilder;
+use MP\Helpers\QueryBuilder\QueryBuilder as QB;
 use MP\LwApi\LWAuthor;
 use MP\PDOWrapper;
 use PDOException;
 
 class TableLWUser {
-	public static function tryToCreate(int $userID, LWAuthor $lwAuthor): null|TableLWUser {
+	public static function tryToCreate(int $userID, LWAuthor $lwAuthor): null|self {
 		try {
 			$id = QueryBuilder::insert('lw_users')
 				->setValues([
@@ -27,40 +31,87 @@ class TableLWUser {
 			throw $e;
 		}
 		
-		return new TableLWUser($id, $lwAuthor->getId(), $lwAuthor->getUsername(), $lwAuthor->getPicture(), $lwAuthor->getFlair());
+		return new self($id, $lwAuthor->getUsername(), $lwAuthor->getPicture(), $lwAuthor->getId(), $lwAuthor->getFlair());
 	}
 	
-	private int $id;
-	private int $identifier;
-	private string $username;
-	private null|string $picture;
-	private null|string $flair;
+	public static function getBuilder(bool $otherData = false): SelectBuilder {
+		$query = QB::select('lw_users', 'pLWU')
+			//Identifier is always fetched, to ensure data is valid on parsing.
+			->selectColumn('id', 'identifier', 'name', 'picture');
+		if($otherData) {
+			$query->selectColumn('flair');
+		}
+		return $query;
+	}
 	
-	public function __construct(int $id, int $identifier, string $username, null|string $picture, null|string $flair) {
-		$this->id = $id;
-		$this->identifier = $identifier;
-		$this->username = $username;
+	public static function fromDB(
+		array $columns, string $prefix = 'lw_users.',
+		bool $otherData = false
+	): null|self {
+		if($columns[$prefix . 'identifier'] === null || $columns[$prefix . 'name'] === null) {
+			return null;
+		}
+		return new self(
+			$columns[$prefix. 'id'],
+			$columns[$prefix. 'name'],
+			$columns[$prefix. 'picture'],
+			//As identifier is always fetched anyway, it might as well be always set:
+			$columns[$prefix. 'identifier'],
+			$otherData ? $columns[$prefix. 'flair'] : Fetchable::i(),
+		);
+	}
+	
+	private int $dbID;
+	private string $name;
+	private null|string $picture;
+	private int $identifier;
+	private Fetchable|null|string $flair;
+	
+	private function __construct(int $dbID, string $name, null|string $picture, int $identifier, Fetchable|null|string $flair) {
+		$this->dbID = $dbID;
+		$this->name = $name;
 		$this->picture = $picture;
+		$this->identifier = $identifier;
 		$this->flair = $flair;
 	}
 	
-	public function getDbId(): int {
-		return $this->id;
+	/**
+	 * @return int
+	 */
+	public function getDbID(): int {
+		return $this->dbID;
 	}
 	
-	public function getIdentifier(): int {
-		return $this->identifier;
+	/**
+	 * @return string
+	 */
+	public function getName(): string {
+		return $this->name;
 	}
 	
-	public function getUsername(): string {
-		return $this->username;
-	}
-	
+	/**
+	 * @return null|string
+	 */
 	public function getPicture(): null|string {
 		return $this->picture;
 	}
 	
-	public function getFlair(): null|string {
+	/**
+	 * @return null|string
+	 */
+	public function getFlair(): string|null {
+		if(Fetchable::isFetchable($this->flair)) {
+			throw new Exception('Tried to get get fetchable lw_user flair, but it was not set yet.');
+		}
 		return $this->flair;
+	}
+	
+	public function asFrontEndJSON(): array {
+		return [
+			//TBI: ID is actually not yet needed on the frontend.
+			'id' => $this->identifier,
+			'name' => $this->name,
+			'picture' => $this->picture,
+		];
 	}
 }

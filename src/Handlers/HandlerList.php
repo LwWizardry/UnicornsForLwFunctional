@@ -3,6 +3,7 @@
 namespace MP\Handlers;
 
 use MP\DatabaseTables\TableModDetails;
+use MP\DatabaseTables\TableUser;
 use MP\Helpers\QueryBuilder\QueryBuilder as QB;
 use MP\ResponseFactory;
 use MP\SlimSetup;
@@ -19,31 +20,19 @@ class HandlerList {
 	}
 	
 	public static function listMods(Request $request, Response $response): Response {
-		$result = QB::select('users')
-			->selectColumn('identifier')
+		$result = TableUser::getBuilder(fetchUsername: true)
 			->joinThat('owner', QB::select('mods')
 				->selectColumn('title', 'caption', 'identifier'))
-			->joinThat('user', QB::select('lw_users')
-				->selectColumn('name', 'identifier', 'picture'),
-			type: 'LEFT')
 			->execute();
 		
 		$modList = [];
 		foreach ($result as $modEntry) {
-			//If the name or the ID is NULL, this entry is invalid and should not exist in the first place.
-			$lw_user = $modEntry['lw_users.name'] === null || $modEntry['lw_users.identifier'] === null ? null : [
-				'id' => $modEntry['lw_users.identifier'],
-				'name' => $modEntry['lw_users.name'],
-				'picture' => $modEntry['lw_users.picture'],
-			];
+			$user = TableUser::fromDB($modEntry, fetchUsername: true);
 			$modList[] = [
 				'identifier' => $modEntry['mods.identifier'],
 				'title' => $modEntry['mods.title'],
 				'caption' => $modEntry['mods.caption'],
-				'owner' => [
-					'identifier' => $modEntry['users.identifier'],
-					'lw_data' => $lw_user,
-				],
+				'owner' => $user->asFrontEndJSON(),
 				'logo' => null,
 			];
 		}

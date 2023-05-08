@@ -2,75 +2,162 @@
 
 namespace MP\DatabaseTables;
 
+use MP\DatabaseTables\Generic\Fetchable;
+use MP\ErrorHandling\InternalDescriptiveException;
+use MP\Helpers\QueryBuilder\Queries\SelectBuilder;
 use MP\Helpers\QueryBuilder\QueryBuilder as QB;
-use MP\Types\LwUserData;
-use MP\Types\UserData;
+use MP\Helpers\UniqueInjectorHelper;
+use MP\PDOWrapper;
+use PDOException;
 
 class TableModDetails {
-	public static function getModFromIdentifier(string $identifier): null|TableModDetails {
-		$result = QB::select('users')
-			->selectColumn('identifier')
-			->joinThat('owner', QB::select('mods')
-				->selectColumn('title', 'caption')
+	public static function getModFromIdentifier(string $identifier): null|self {
+		$result = TableUser::getBuilder(fetchUsername: true)
+			->joinThat('owner', self::getBuilder()
 				->whereValue('identifier', $identifier))
-			->joinThat('user', QB::select('lw_users')
-				->selectColumn('identifier', 'name', 'picture'),
-			type: 'LEFT')
 			->expectOneRow()
 			->execute();
 		if($result === false) {
 			return null;
 		}
+		return self::fromDB($result);
+	}
+	
+	public static function addNewMod(string $title, string $caption, TableUser $user): null|self {
+		//TODO: Improve title validation, remove "'" and other funny characters.
+		// Can probably be expanded on demand.
+		//Sanitise title, by making it lowercase:
+		$title_sane = mb_strtolower($title);
 		
-		$lwData = $result['lw_users.identifier'] === null || $result['lw_users.name'] === null ?
-			null : new LwUserData($result['lw_users.identifier'], $result['lw_users.name'], $result['lw_users.picture']);
-		$user = new UserData($result['users.identifier'], $lwData);
+		//Inject a mod entry into DB, Title/title_normalized/Caption - Warning: Title_sane can be a duplicate!
+		try {
+			$result = QB::insert('mods')
+				->setValues([
+					'title' => $title,
+					'title_sane' => $title_sane,
+					'caption' => $caption,
+					'owner' => $user->getDbId(),
+				])
+				->setUTC('created_at')
+				->return('id', 'created_at')
+				->execute();
+		} catch (PDOException $e) {
+			if(PDOWrapper::isUniqueConstrainViolation($e)) {
+				return null;
+			}
+			throw $e;
+		}
+		$entryID = $result['id'];
+		$createdAt = $result['created_at'];
 		
-		return new TableModDetails(
+		try {
+			//Now that the entry is inserted, try to generate an identifier for it:
+			$identifier = UniqueInjectorHelper::shortIdentifier('mods', $entryID);
+		} catch (PDOException $e) {
+			//Limit damage, by deleting the entry:
+			PDOWrapper::deleteByIDSafe('mods', $entryID);
+			throw $e;
+		}
+		if($identifier == null) {
+			//Identifier was 'null', something went wrong, clean up new entry and continue.
+			PDOWrapper::deleteByID('mods', $entryID);
+			return null;
+		}
+		
+		return new self(
+			$entryID,
 			$identifier,
-			$result['mods.title'],
-			$result['mods.caption'],
+			$createdAt,
+			$title,
+			$caption,
 			$user,
 		);
 	}
 	
+	public static function getBuilder(): SelectBuilder {
+		return QB::select('mods', 'pM')
+			->selectColumn('id', 'identifier', 'created_at', 'title', 'caption', 'owner');
+		//TBI: Fetch user here? Nah...?
+	}
+	
+	public static function fromDB(array $columns, string $prefix = 'mods.'): self {
+		return new self(
+			$columns[$prefix. 'id'],
+			$columns[$prefix. 'identifier'],
+			$columns[$prefix. 'created_at'],
+			$columns[$prefix. 'title'],
+			$columns[$prefix. 'caption'],
+			TableUser::fromDB($columns, fetchUsername: true),
+		);
+	}
+	
+	private int $dbID;
 	private string $identifier;
-	
+	private string $createdAt; //TODO: Datetime
 	private string $title;
-	
 	private string $caption;
+	private Fetchable|TableUser $user;
 	
-	private UserData $user;
-	
-	public function __construct(string $identifier, string $title, string $caption, UserData $user) {
+	private function __construct(int $dbID, string $identifier, string $createdAt, string $title, string $caption, Fetchable|TableUser $user) {
+		$this->dbID = $dbID;
 		$this->identifier = $identifier;
+		$this->createdAt = $createdAt;
 		$this->title = $title;
 		$this->caption = $caption;
 		$this->user = $user;
 	}
 	
+	/**
+	 * @return int
+	 */
+	public function getDbID(): int {
+		return $this->dbID;
+	}
+	
+	/**
+	 * @return string
+	 */
 	public function getIdentifier(): string {
 		return $this->identifier;
 	}
 	
+	/**
+	 * @return string
+	 */
+	public function getCreatedAt(): string {
+		return $this->createdAt;
+	}
+	
+	/**
+	 * @return string
+	 */
 	public function getTitle(): string {
 		return $this->title;
 	}
 	
+	/**
+	 * @return string
+	 */
 	public function getCaption(): string {
 		return $this->caption;
 	}
 	
-	public function getUser(): UserData {
+	/**
+	 * @return TableUser
+	 */
+	public function getUser(): TableUser {
+		if(Fetchable::isFetchable($this->user)) {
+			throw new InternalDescriptiveException('Attempted to use mod user, but it was not fetched yet!');
+		}
 		return $this->user;
 	}
-
+	
 	public function asFrontEndJSON(): array {
 		return [
 			'identifier' => $this->identifier,
 			'title' => $this->title,
 			'caption' => $this->caption,
-			'owner' => $this->user->asFrontEndJSON(),
+			'owner' => $this->getUser()->asFrontEndJSON(),
 		];
 	}
 }

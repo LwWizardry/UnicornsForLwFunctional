@@ -105,7 +105,7 @@ class EditModHandler {
 		}
 		//At this point the request data is valid.
 		
-		$modSummary = TableModSummary::addNewMod($title, $caption, $user);
+		$modSummary = TableModDetails::addNewMod($title, $caption, $user);
 		if($modSummary === null) {
 			return ResponseFactory::writeFailureMessage($response, 'A mod with a title like this already exists!');
 		}

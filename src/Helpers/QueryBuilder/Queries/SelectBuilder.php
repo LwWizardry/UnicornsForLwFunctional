@@ -6,7 +6,6 @@ use Exception;
 use MP\Helpers\QueryBuilder\Internal\BuiltQuery;
 use MP\Helpers\QueryBuilder\Internal\ConditionalTrait;
 use MP\Helpers\QueryBuilder\QueryBuilder;
-use PDOStatement;
 
 class SelectBuilder extends QueryBuilder {
 	use ConditionalTrait;
