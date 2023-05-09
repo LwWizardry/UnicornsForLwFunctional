@@ -37,14 +37,20 @@ class EditModHandler {
 		$modIdentifier = JsonValidator::getString($jsonData, 'identifier');
 		$newTitle = JsonValidator::getStringNullable($jsonData, 'newTitle');
 		$newCaption = JsonValidator::getStringNullable($jsonData, 'newCaption');
-		if($newTitle === null && $newCaption === null) {
+		$newDescription = JsonValidator::getStringNullable($jsonData, 'newDescription');
+		$newLinkSourceCode = JsonValidator::getStringNullable($jsonData, 'newLinkSourceCode');
+		if($newTitle === null && $newCaption === null && $newDescription === null && $newLinkSourceCode === null) {
 			throw new BadRequestException('No change in request.');
 		}
 		//TBI: Is trimming like this sufficient?
 		$newTitle = $newTitle !== null ? trim($newTitle) : null;
 		$newCaption = $newCaption !== null ? trim($newCaption) : null;
+		$newDescription = $newDescription !== null ? trim($newDescription) : null;
+		$newLinkSourceCode = $newLinkSourceCode !== null ? trim($newLinkSourceCode) : null;
 		//TBI: Error type, front-end should have caught this... (for all following checks)
-		$result = self::checkTitleCaption($newTitle, $newCaption);
+		$result = self::checkTitleCaption($newTitle, $newCaption)
+			?? self::checkMaxLength($newDescription, 10000, 'Description')
+			?? self::checkMaxLength($newLinkSourceCode, 500, 'LinkSourceCode');
 		if($result !== null) {
 			return ResponseFactory::writeFailureMessage($response, $result);
 		}
@@ -67,6 +73,16 @@ class EditModHandler {
 		}
 		if($newCaption !== null) {
 			$builder->setValue('caption', $newCaption);
+		}
+		if($newDescription !== null) {
+			$builder->setValue('description', $newDescription);
+		}
+		if($newLinkSourceCode !== null) {
+			if(empty($newLinkSourceCode)) {
+				//TBI: Maybe just always store as string?
+				$newLinkSourceCode = null;
+			}
+			$builder->setValue('link_source_code', $newLinkSourceCode);
 		}
 		$builder->whereValue('identifier', $modIdentifier);
 		try {
@@ -167,6 +183,20 @@ class EditModHandler {
 			if($captionLength > 200) {
 				return 'Caption must not be longer than 200 letters.';
 			}
+		}
+		return null;
+	}
+	
+	private static function checkMaxLength(null|string $value, int $max, string $type): null|string {
+		if($value === null) {
+			return null;
+		}
+		if(!UTF8Helper::isUTF8($value)) {
+			throw new BadRequestException('Invalid UTF-8 sequence for ' . strtolower($type));
+		}
+		$length = mb_strlen($value, 'UTF-8');
+		if($length > $max) {
+			return $type . ' must not be longer than ' . $max . ' letters.';
 		}
 		return null;
 	}

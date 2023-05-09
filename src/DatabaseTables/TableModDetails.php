@@ -71,12 +71,14 @@ class TableModDetails {
 			$title,
 			$caption,
 			$user,
+			'',
+			null,
 		);
 	}
 	
 	public static function getBuilder(): SelectBuilder {
 		return QB::select('mods', 'pM')
-			->selectColumn('id', 'identifier', 'created_at', 'title', 'caption', 'owner');
+			->selectColumn('id', 'identifier', 'created_at', 'title', 'caption', 'owner', 'description', 'link_source_code');
 		//TBI: Fetch user here? Nah...?
 	}
 	
@@ -88,6 +90,8 @@ class TableModDetails {
 			$columns[$prefix. 'title'],
 			$columns[$prefix. 'caption'],
 			TableUser::fromDB($columns, fetchUsername: true),
+			$columns[$prefix. 'description'],
+			$columns[$prefix. 'link_source_code'],
 		);
 	}
 	
@@ -97,14 +101,18 @@ class TableModDetails {
 	private string $title;
 	private string $caption;
 	private Fetchable|TableUser $user;
+	private string $description;
+	private null|string $linkSourceCode;
 	
-	private function __construct(int $dbID, string $identifier, string $createdAt, string $title, string $caption, Fetchable|TableUser $user) {
+	private function __construct(int $dbID, string $identifier, string $createdAt, string $title, string $caption, Fetchable|TableUser $user, string $description, null|string $linkSourceCode) {
 		$this->dbID = $dbID;
 		$this->identifier = $identifier;
 		$this->createdAt = $createdAt;
 		$this->title = $title;
 		$this->caption = $caption;
 		$this->user = $user;
+		$this->description = $description;
+		$this->linkSourceCode = $linkSourceCode;
 	}
 	
 	/**
@@ -152,12 +160,28 @@ class TableModDetails {
 		return $this->user;
 	}
 	
+	/**
+	 * @return string
+	 */
+	public function getDescription(): string {
+		return $this->description;
+	}
+	
+	/**
+	 * @return string|null
+	 */
+	public function getLinkSourceCode(): ?string {
+		return $this->linkSourceCode;
+	}
+	
 	public function asFrontEndJSON(): array {
 		return [
 			'identifier' => $this->identifier,
 			'title' => $this->title,
 			'caption' => $this->caption,
 			'owner' => $this->getUser()->asFrontEndJSON(),
+			'description' => $this->description,
+			'linkSourceCode' => $this->linkSourceCode,
 		];
 	}
 }
