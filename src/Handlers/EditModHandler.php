@@ -54,6 +54,9 @@ class EditModHandler {
 		if($result !== null) {
 			return ResponseFactory::writeFailureMessage($response, $result);
 		}
+		if(!preg_match('#^https?://([0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}|[^/.]+\.[^/.0-9]+)(/.*)?$#', $newLinkSourceCode)) {
+			return ResponseFactory::writeFailureMessage($response, 'Source code link must start with http(s):// followed by a domain or IP address.');
+		}
 		//At this point, the request is valid.
 		
 		//Fetch mod data, to check what has to be changed:
