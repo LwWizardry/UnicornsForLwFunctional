@@ -39,4 +39,8 @@ class Base32 {
 		
 		return $res;
 	}
+	
+	public static function matchesIdentifier(string $value): bool {
+		return preg_match('#^[ABCDEFGHIJKLMNOPQRSTUVWXYZ234567]+$#', $value);
+	}
 }

@@ -3,8 +3,7 @@
 namespace MP\Handlers;
 
 use MP\DatabaseTables\TableModDetails;
-use MP\DatabaseTables\TableUser;
-use MP\Helpers\QueryBuilder\QueryBuilder as QB;
+use MP\DatabaseTables\TableModSummary;
 use MP\ResponseFactory;
 use MP\SlimSetup;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -14,27 +13,19 @@ class HandlerList {
 	public static function initializeRouteHandlers(): void {
 		LoginHandler::initializeRouteHandlers();
 		EditModHandler::initializeRouteHandlers();
+		AssetHandler::initializeRouteHandlers();
 		
 		SlimSetup::getSlim()->get('/mods', self::listMods(...));
 		SlimSetup::getSlim()->get('/mod-details', self::modDetails(...));
 	}
 	
 	public static function listMods(Request $request, Response $response): Response {
-		$result = TableUser::getBuilder(fetchUsername: true)
-			->joinThat('owner', QB::select('mods')
-				->selectColumn('title', 'caption', 'identifier'))
-			->execute();
+		$result = TableModSummary::getBuilder(fetchUser: true)->execute();
 		
 		$modList = [];
 		foreach ($result as $modEntry) {
-			$user = TableUser::fromDB($modEntry, fetchUsername: true);
-			$modList[] = [
-				'identifier' => $modEntry['mods.identifier'],
-				'title' => $modEntry['mods.title'],
-				'caption' => $modEntry['mods.caption'],
-				'owner' => $user->asFrontEndJSON(),
-				'logo' => null,
-			];
+			$mod = TableModSummary::fromDB($modEntry, fetchUsername: true);
+			$modList[] = $mod->asFrontEndJSON();
 		}
 		return ResponseFactory::writeJsonData($response, $modList);
 	}

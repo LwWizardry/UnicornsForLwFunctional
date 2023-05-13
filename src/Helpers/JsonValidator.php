@@ -96,4 +96,9 @@ class JsonValidator {
 		}
 		return $value;
 	}
+	
+	public static function isNotNull(array $object, string $key): bool {
+		$value = self::expectKey($object, $key);
+		return $value !== null;
+	}
 }

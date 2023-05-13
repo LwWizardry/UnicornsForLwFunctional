@@ -37,7 +37,7 @@ class TableModSummary {
 	
 	public static function getBuilder(bool $fetchUser = false): SelectBuilder {
 		$query = QB::select('mods', 'pMS')
-			->selectColumn('identifier', 'title', 'caption');
+			->selectColumn('identifier', 'title', 'caption', 'logo_path');
 		if($fetchUser) {
 			$query->joinThis('owner', TableUser::getBuilder(fetchUsername: true));
 		}
@@ -49,9 +49,10 @@ class TableModSummary {
 		bool $fetchUsername = false,
 	): self {
 		return new self(
-			$columns[$prefix. 'identifier'],
-			$columns[$prefix. 'title'],
-			$columns[$prefix. 'caption'],
+			$columns[$prefix . 'identifier'],
+			$columns[$prefix . 'title'],
+			$columns[$prefix . 'caption'],
+			$columns[$prefix . 'logo_path'],
 			$fetchUsername ? TableUser::fromDB($columns, fetchUsername: true) : Fetchable::i(),
 		);
 	}
@@ -62,13 +63,16 @@ class TableModSummary {
 	
 	private string $caption;
 	
+	private null|string $logo;
+	
 	private Fetchable|TableUser $owner;
 	
 	//Data structure is meant as a shortcut for explicitly getting data, hence no ID is needed to update data.
-	private function __construct(string $identifier, string $title, string $caption, Fetchable|TableUser $owner) {
+	private function __construct(string $identifier, string $title, string $caption, null|string $logo, Fetchable|TableUser $owner) {
 		$this->identifier = $identifier;
 		$this->title = $title;
 		$this->caption = $caption;
+		$this->logo = $logo;
 		$this->owner = $owner;
 	}
 	
@@ -94,6 +98,13 @@ class TableModSummary {
 	}
 	
 	/**
+	 * @return string|null
+	 */
+	public function getLogo(): ?string {
+		return $this->logo;
+	}
+	
+	/**
 	 * @return TableUser
 	 * @throws Exception When owner is not fetched yet. (Access this table by different means, or fetch on load).
 	 */
@@ -105,10 +116,15 @@ class TableModSummary {
 	}
 	
 	public function asFrontEndJSON(): array {
-		return [
+		$arr = [
 			'identifier' => $this->identifier,
 			'title' => $this->title,
 			'caption' => $this->caption,
+			'image' => $this->logo,
 		];
+		if(!Fetchable::isFetchable($this->owner)) {
+			$arr['owner'] = $this->getOwner()->asFrontEndJSON();
+		}
+		return $arr;
 	}
 }

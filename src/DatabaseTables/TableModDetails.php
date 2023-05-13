@@ -73,12 +73,13 @@ class TableModDetails {
 			$user,
 			'',
 			null,
+			null,
 		);
 	}
 	
 	public static function getBuilder(): SelectBuilder {
 		return QB::select('mods', 'pM')
-			->selectColumn('id', 'identifier', 'created_at', 'title', 'caption', 'owner', 'description', 'link_source_code');
+			->selectColumn('id', 'identifier', 'created_at', 'title', 'caption', 'owner', 'description', 'link_source_code', 'logo_path');
 		//TBI: Fetch user here? Nah...?
 	}
 	
@@ -92,6 +93,7 @@ class TableModDetails {
 			TableUser::fromDB($columns, fetchUsername: true),
 			$columns[$prefix. 'description'],
 			$columns[$prefix. 'link_source_code'],
+			$columns[$prefix . 'logo_path'],
 		);
 	}
 	
@@ -103,8 +105,9 @@ class TableModDetails {
 	private Fetchable|TableUser $user;
 	private string $description;
 	private null|string $linkSourceCode;
+	private null|string $logo;
 	
-	private function __construct(int $dbID, string $identifier, string $createdAt, string $title, string $caption, Fetchable|TableUser $user, string $description, null|string $linkSourceCode) {
+	private function __construct(int $dbID, string $identifier, string $createdAt, string $title, string $caption, Fetchable|TableUser $user, string $description, null|string $linkSourceCode, null|string $logo) {
 		$this->dbID = $dbID;
 		$this->identifier = $identifier;
 		$this->createdAt = $createdAt;
@@ -113,6 +116,7 @@ class TableModDetails {
 		$this->user = $user;
 		$this->description = $description;
 		$this->linkSourceCode = $linkSourceCode;
+		$this->logo = $logo;
 	}
 	
 	/**
@@ -174,6 +178,13 @@ class TableModDetails {
 		return $this->linkSourceCode;
 	}
 	
+	/**
+	 * @return string|null
+	 */
+	public function getLogo(): ?string {
+		return $this->logo;
+	}
+	
 	public function asFrontEndJSON(): array {
 		return [
 			'identifier' => $this->identifier,
@@ -182,6 +193,7 @@ class TableModDetails {
 			'owner' => $this->getUser()->asFrontEndJSON(),
 			'description' => $this->description,
 			'linkSourceCode' => $this->linkSourceCode,
+			'image' => $this->logo,
 		];
 	}
 }

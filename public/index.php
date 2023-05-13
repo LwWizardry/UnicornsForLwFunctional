@@ -12,7 +12,7 @@ use MP\SlimSetup;
 //Load environment variables:
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
-$dotenv->required(['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'PRODUCTION_FRONTEND_URL'])->notEmpty();
+$dotenv->required(['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'PRODUCTION_FRONTEND_URL', 'FREE_SPACE'])->notEmpty();
 
 set_error_handler(function(
 	int $errno,
