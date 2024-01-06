@@ -16,7 +16,12 @@ class TableModSummary {
 		if($result === false) {
 			return null;
 		}
-		return self::fromDB($result);
+		if($fetchUsername) {
+			return self::fromDB($result);
+		} else {
+			//If there is no username, it is only one table. Remove the prefix.
+			return self::fromDB($result, prefix: '');
+		}
 	}
 	
 	/**

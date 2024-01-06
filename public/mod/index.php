@@ -16,6 +16,21 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../../');
 $dotenv->load();
 $dotenv->required(['DB_NAME', 'DB_USER', 'DB_PASSWORD', 'PRODUCTION_FRONTEND_URL'])->notEmpty();
 
+set_error_handler(function(
+	int $errno,
+	string $errstr,
+	string $errfile,
+	int $errline,
+) {
+	if($errno == E_WARNING) {
+		throw new ErrorException(
+			'Warning was raised in ' . $errfile . ' line ' . $errline . ' with message: ' . $errstr
+		);
+	}
+	
+	return false;
+});
+
 SlimSetup::setup();
 //Any error above this point will result in a CORS issue in the browser. Mostly these are failed setup errors though.
 
@@ -37,9 +52,9 @@ SlimSetup::getSlim()->get('/mod/{name}[/]', function (Request $request, Response
 		
 		//In case that the DB lookup fails, use this data:
 		$title = 'Error loading mod';
-		$search_title = 'Unloaded mod';
-		$search_description = 'Mod could not be loaded by backend.';
-		$url_title = 'mod-' . $mod_name;
+		$search_title = 'Failed loading mod';
+		$search_description = 'Mod information could not be loaded by backend.';
+		$url_title = $mod_name;
 		
 		try {
 			$modSummary = TableModSummary::getModFromIdentifier($identifier);
@@ -77,9 +92,10 @@ SlimSetup::getSlim()->get('/mod/{name}[/]', function (Request $request, Response
 		<body>
 			<p>$title</p>
 			<p>
-				In case that you do not get redirected automatically click here:
-				<a href="$destination_url">$url_title</a>
-				(Report a bug, unless you disabled JS).
+				You should be automatically redirected to <a href="$destination_url">$url_title</a>
+			</p>
+			<p>
+				In case it did not redirect you: Report a bug [unless you disabled JS].
 			</p>
 		</body>
 		</html>
